@@ -34,17 +34,18 @@ class Agent:
         controlInput=np.zeros((2,1))
         pnpSummand=np.zeros((2,1))
         if self.task['keepUpQ']:
-            for Nname in self.neighbors:
-                navvec=self.navf(positions[Nname])
-                relpos=positions[Nname]-self.pos
-                navxi=self.network.tension_func(la.norm(relpos))*(relpos.T@relpos)[0][0]/(0.+(relpos.T@navvec)[0][0])
+            for name in self.neighbors:
+                navvec=self.navf(positions[name])
+                relpos=positions[name]-self.pos
+                navxi=self.network.tension_func(la.norm(relpos))*(relpos.T@relpos).reshape((1,1))/(0.+(relpos.T@navvec).reshape((1,1)))
                 pnpSummand=pnpSummand+navxi*navvec
 
         targ=self.task['target']
         if targ is None:
             controlInput=controlInput+pnpSummand
         else:
-            controlInput=controlInput+pnpSummand+self.network.leaderGain*self.navf(targ)
+            targ=targ.reshape((2,1))
+            controlInput=controlInput+self.network.leaderGain*self.navf(targ)+pnpSummand 
         return controlInput
     
 class sphereAgent(Agent):

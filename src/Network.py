@@ -25,7 +25,7 @@ class netwk():
         self.LazyQ=bool(pnpParameters['Lazy'])
         self.coopGain=int(pnpParameters['coopGain'])
         self.stateWname=stateWname
-        self.dt=0.01
+        self.dt=0.001
         if self.stateWname:
             self.mode=1
         else:
@@ -163,14 +163,13 @@ class netwk():
         return self.agents
     
     def tension_func(self,s):
-        if s >= 0 and s<self.rsafe:
-            return (1-self.LazyQ)*self.coopGain
-        if s >= self.rsafe and s <= self.rcomm:
-            return (1-self.LazyQ)*self.coopGain + self.omega*((s-self.rsafe)**(1+self.alpha))
-        if s > self.rcomm:
-                return 0
-        # return 1
-        
+        # if s >= 0 and s<self.rsafe:
+        #     return (1-self.LazyQ)*self.coopGain
+        # if s >= self.rsafe and s <= self.rcomm:
+        #     return (1-self.LazyQ)*self.coopGain + self.omega*((s-self.rsafe)**(1+self.alpha))
+        # if s > self.rcomm:
+        #         return 0
+        return 1        
     def dummyUpdate(self):
         # change all agents to rando positions 
         for name in self.graph.names:

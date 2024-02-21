@@ -12,10 +12,10 @@ from graph_w_names import graph_w_names
 from Network import netwk
 import matplotlib.pyplot as plt
 import shapely
-import universal
 from time import sleep
 import matplotlib.animation as animation
 from scipy.integrate import odeint
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 if len(sys.argv) != 3:
     print("Usage: main_single_sim.py <filename.yml>")
@@ -86,9 +86,9 @@ ani=animation.FuncAnimation(
     # cache_frame_data=False,
     save_count=Nframes,
 )
-# ffmpegWriter=animation.writers['ffmpeg']
-
-ani.save(animationFile, writer="ffmpeg", dpi=100, fps=120)
+animationFile = r"c://Users/ishan/Desktop/animation.mp4" 
+writerVideo = animation.FFMpegWriter(fps=120) 
+ani.save('pnpDemo.mp4', writer=writerVideo)
 plt.show()    
 
 
