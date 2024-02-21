@@ -7,7 +7,6 @@ import shapely
 import universal
 from Obstacle import shapelyObstacle
 from scipy.optimize import minimize
-import quadprog
 import qpsolvers
 
 
