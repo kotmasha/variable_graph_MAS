@@ -54,7 +54,10 @@ class sphereworldEnv(environment):
     
     def navfSphere(self,state,goal):
         self.A=np.vstack((self.workspaceMatrix,self.safetyMatrix(state)))
+        print(state)
+        print(self.A)
         self.bb=np.vstack((self.workspaceCoefficients-(self.workspaceMatrix@goal).reshape(len(self.workspaceMatrix),1),self.safetyCoeffs(goal,state)))
+        print(self.bb)
         x0=np.ravel(state-goal.reshape((2,1)))
         result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='osqp')
 

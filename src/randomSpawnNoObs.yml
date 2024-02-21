@@ -33,20 +33,12 @@ pnpParameters:
   leaderGain: 0.01 #(this is gamma)
   alpha: 1
   rsafe: 0.7
-  rcomm: 2
+  rcomm: 3
 
 netID: 'AutonomyPark'
 
 Agents:
-  tree_mat_num: 
-    - [0, 1]
-    - [1, 2]
-    - [0, 3]
-    - [3, 4]
-    - [0, 5]
-    - [5, 6]
-    - [6, 7]
-    - [7, 8]
+
   tree_mat_names:
     - ["Bob","Joe"]
     - ["Joe","Josh"]

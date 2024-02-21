@@ -1,0 +1,64 @@
+
+workPath: 'C:\simulations\pnpPython\sims\randomSpawnNoObs\'
+Wksp_bnds:
+  upper:
+    - [15]
+  lower:
+    - [-15]
+
+
+Obstacles:
+  worldType: 0 #0 is sphere world, 1 is star shaped, 2 is polygonal 
+  sphereWorld:
+    obsNum: 3
+    obsCenter:
+      - [-5,5]
+    obsRadii: [4]
+
+  rectangle:
+    - [6, 2]
+    - [7, 2]
+    - [7, 9]
+    - [6, 9]
+    - [9, 9]
+    - [11, 9]
+    - [11, 7]
+    - [9, 7]
+
+pnpParameters:
+  Lazy: 0
+  coopGain: 100   
+  leaderGain: 0.01 #(this is gamma)
+  alpha: 1
+  rsafe: 0.7
+  rcomm: 2
+
+netID: 'AutonomyPark'
+
+Agents:
+  tree_mat_names:
+    - ["Joe","Josh"]
+    - ["Josh","Zoe"]
+    - ["Zoe", "AAA"]
+    - ["Zoe", "YYY"]
+
+  Names:
+    - "Joe" 
+    - "Josh"
+    - "Zoe"
+    - "AAA"
+    - "YYY"
+
+  NamesandPos:
+      - ["Joe" ,[-14,-14]]
+      - ["Josh", [-14,-13]]
+      - ["Zoe", [-13,-12]]
+      - ["AAA", [-12,-13]]
+      - ["YYY", [-14,-10]]
+
+  Leaders:
+    Zoe:
+      Target: [14,14]
+      keepUpQ:  False
+    
+

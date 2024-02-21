@@ -13,7 +13,7 @@ from agentTask import agentask
 
 class netwk():
 
-    def __init__(self,netID,graphWithNames,env,leaders,pnpParameters):
+    def __init__(self,netID,graphWithNames,env,leaders,pnpParameters,stateWname=None):
         self.graph=graphWithNames
         self.env=env
         self.agents={name:None for name in self.graph.names}
@@ -24,7 +24,12 @@ class netwk():
         self.leaderGain=pnpParameters['leaderGain']
         self.LazyQ=bool(pnpParameters['Lazy'])
         self.coopGain=int(pnpParameters['coopGain'])
-        self.dt=0.0001
+        self.stateWname=stateWname
+        self.dt=0.01
+        if self.stateWname:
+            self.mode=1
+        else:
+            self.mode=0
         self.leaders=leaders
         self.m=1/pnpParameters['rsafe']
         self.numEdges=len(self.graph.edges)
@@ -39,7 +44,7 @@ class netwk():
 
 
         self.task=agentask(self.graph,self.leaders)
-        self.populate()
+        self.populate(self.mode)
         self.y0=np.empty((0,1))
         for name in self.graph.names:
             self.y0=np.vstack((self.y0,self.agents[name].pos))
@@ -124,6 +129,10 @@ class netwk():
     def populate(self,mode=0):
         if mode==0:
             self.spawnAgents()
+        elif self.mode==1:
+            for name,pos in self.stateWname:
+
+                self.agents[name]=Agent(name, self.env, self,self.task.taskList[name], np.array(pos).reshape((2,1)))
         else:
             raise Exception("Invalid network generation mode")
         

@@ -36,6 +36,13 @@ obstacleData=data['Obstacles']
 upper=int(data['Wksp_bnds']['upper'][0][0])
 lower=int(data['Wksp_bnds']['lower'][0][0])
 names=data['Agents']['Names']
+print(len(data['Agents']))
+if len(data['Agents'])>3:
+    stateWname=data['Agents']['NamesandPos']
+else:
+    stateWname=None
+
+print('wat')
 pnpParameters=data['pnpParameters']
 # each edge is represented as a tuple of names
 edges=[tuple(item) for item in data['Agents']['tree_mat_names']]
@@ -52,7 +59,7 @@ elif worldType==2:
     env=polygonEnv()
 
 graph=graph_w_names(names,edges)
-net=netwk(netID,graph,env,leaders,pnpParameters)
+net=netwk(netID,graph,env,leaders,pnpParameters,stateWname)
 
 def updateAni(content):
     # update agent positions
