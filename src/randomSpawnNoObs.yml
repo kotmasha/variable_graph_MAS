@@ -29,8 +29,8 @@ Obstacles:
 
 pnpParameters:
   Lazy: 0
-  coopGain: 10   
-  leaderGain: 1 #(this is gamma)
+  coopGain: 1  
+  leaderGain: 0.1 #(this is gamma)
   alpha: 1
   rsafe: 0.7
   rcomm: 3

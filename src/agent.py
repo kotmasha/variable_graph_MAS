@@ -39,13 +39,13 @@ class Agent:
                 relpos=positions[name]-self.pos
                 navxi=self.network.tension_func(la.norm(relpos))*(relpos.T@relpos).reshape((1,1))/(0.+(relpos.T@navvec).reshape((1,1)))
                 pnpSummand=pnpSummand+navxi*navvec
-
+            print(self.name,pnpSummand)
         targ=self.task['target']
         if targ is None:
             controlInput=controlInput+pnpSummand
         else:
             targ=targ.reshape((2,1))
-            controlInput=controlInput+self.network.leaderGain*self.navf(targ)+pnpSummand 
+            controlInput=controlInput-self.network.leaderGain*self.navf(targ) 
         return controlInput
     
 class sphereAgent(Agent):
