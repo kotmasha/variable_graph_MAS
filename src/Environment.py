@@ -6,7 +6,7 @@ import random
 import shapely
 import universal
 from Obstacle import shapelyObstacle
-from scipy.optimize import minimize
+# from scipy.optimize import minimize
 import qpsolvers
 
 
