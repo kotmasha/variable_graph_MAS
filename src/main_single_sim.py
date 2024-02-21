@@ -36,13 +36,11 @@ obstacleData=data['Obstacles']
 upper=int(data['Wksp_bnds']['upper'][0][0])
 lower=int(data['Wksp_bnds']['lower'][0][0])
 names=data['Agents']['Names']
-print(len(data['Agents']))
 if len(data['Agents'])>3:
     stateWname=data['Agents']['NamesandPos']
 else:
     stateWname=None
 
-print('wat')
 pnpParameters=data['pnpParameters']
 # each edge is represented as a tuple of names
 edges=[tuple(item) for item in data['Agents']['tree_mat_names']]
@@ -77,9 +75,7 @@ def frameCounter(n,obj):
 
 
 plt.legend(loc='best')
-plt.xlabel('t')
-plt.grid()
-plt.show()
+
 
 ani=animation.FuncAnimation(
     fig=net.figure,
@@ -90,7 +86,7 @@ ani=animation.FuncAnimation(
     # cache_frame_data=False,
     save_count=Nframes,
 )
-ffmpegWriter=animation.writers['ffmpeg']
+# ffmpegWriter=animation.writers['ffmpeg']
 
 ani.save(animationFile, writer="ffmpeg", dpi=100, fps=120)
 plt.show()    

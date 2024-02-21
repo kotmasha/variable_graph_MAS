@@ -84,8 +84,7 @@ class netwk():
             self.visualization.add_patch(self.verticesVisual[name])
         self.goalVisual=self.visualization.plot(self.leaders['Zoe']['Target'][0],self.leaders['Zoe']['Target'][1],'rx')
 
-        n=env.navfSphere(self.agents['Zoe'].pos,np.array([14,14]).T)
-        print(n)
+        # n=env.navfSphere(self.agents['Zoe'].pos,np.array([14,14]).T)
 
     def pnpFlowMap(self,y,t):
         out=np.empty((0,1))

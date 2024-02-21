@@ -20,7 +20,7 @@ class environment() :
         self.obstacleData=obstacleData
         self.workspace=shapely.geometry.polygon.orient(outerbounds,1.0) # shapely polygon whose interior is the desired workspace             
         self.workspaceMatrix = np.array([[1, 0],[-1, 0],[0, 1],[0, -1]])
-        self.workspaceCoefficients=np.array([[self.workspace.exterior.coords[1][0]],[-self.workspace.exterior.coords[1][0]],[self.workspace.exterior.coords[1][0]],[-self.workspace.exterior.coords[1][0]]])
+        self.workspaceCoefficients=np.array([[self.workspace.exterior.coords[1][0]],[self.workspace.exterior.coords[1][0]],[self.workspace.exterior.coords[1][0]],[self.workspace.exterior.coords[1][0]]])
     
     def radialNav(goal,state):    
         return goal-state
@@ -54,16 +54,16 @@ class sphereworldEnv(environment):
     
     def navfSphere(self,state,goal):
         self.A=np.vstack((self.workspaceMatrix,self.safetyMatrix(state)))
-        print(state)
-        print(self.A)
+        # print(state)
+        # print(self.A)
         self.bb=np.vstack((self.workspaceCoefficients-(self.workspaceMatrix@goal).reshape(len(self.workspaceMatrix),1),self.safetyCoeffs(goal,state)))
-        print(self.bb)
+        # print(self.bb)
         x0=np.ravel(state-goal.reshape((2,1)))
-        result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='osqp')
+        result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='quadprog')
 
         # result = minimize(self.objectiveFun, x0, constraints=constraints, options=options, method='SLSQP')
-        print(goal,result,state,self.A,self.bb)
-        return goal
+        print(result.T)
+        return goal.reshape((2,1))+result.reshape((2,1))-state
     
     def objectiveFun(self,x):
         # x = x.reshape((-1, 1))

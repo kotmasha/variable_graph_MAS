@@ -12,8 +12,10 @@ Obstacles:
   sphereWorld:
     obsNum: 3
     obsCenter:
-      - [-5,5]
-    obsRadii: [4]
+      - [8,0]
+      - [-4,6.92]
+      - [-4,-6.92]
+    obsRadii: [5,4,3]
 
   rectangle:
     - [6, 2]

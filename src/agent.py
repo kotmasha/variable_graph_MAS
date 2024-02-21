@@ -34,9 +34,9 @@ class Agent:
         controlInput=np.zeros((2,1))
         pnpSummand=np.zeros((2,1))
         if self.task['keepUpQ']:
-            for name in self.neighbors:
-                navvec=self.navf(positions[name])
-                relpos=positions[name]-self.pos
+            for Nname in self.neighbors:
+                navvec=self.navf(positions[Nname])
+                relpos=positions[Nname]-self.pos
                 navxi=self.network.tension_func(la.norm(relpos))*(relpos.T@relpos)[0][0]/(0.+(relpos.T@navvec)[0][0])
                 pnpSummand=pnpSummand+navxi*navvec
 
