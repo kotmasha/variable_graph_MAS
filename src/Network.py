@@ -25,7 +25,7 @@ class netwk():
         self.LazyQ=bool(pnpParameters['Lazy'])
         self.coopGain=int(pnpParameters['coopGain'])
         self.stateWname=stateWname
-        self.dt=0.01
+        self.dt=0.001
         if self.stateWname:
             self.mode=1
         else:
@@ -102,7 +102,7 @@ class netwk():
                 nbrIdx[i]=2*vertex_indices[val]
             if self.task.taskList[name]['keepUpQ']:
                 for nbr in nbrIdx:
-                    navvec=self.env.radialNav(xStack[nbr:nbr+2].reshape(-1,1),myState.reshape(-1,1))
+                    navvec=self.env.navfSphere(xStack[nbr:nbr+2].reshape((2,1)),myState.reshape((2,1)))
                     relpos=xStack[nbr:nbr+2]-myState
                     navxi=self.tension_func(la.norm(relpos))*(relpos.T@relpos)/(0.+(relpos.T@navvec))
                     pnpSummand=pnpSummand+navxi*navvec
@@ -110,7 +110,8 @@ class netwk():
             if targ is None:
                 controlInput=controlInput+pnpSummand
             else:                
-                controlInput=(controlInput.T+pnpSummand.T+self.leaderGain*self.env.radialNav(targ.flatten(),myState)).T      
+                controlInput=(controlInput+self.leaderGain*self.env.navfSphere(targ.reshape((2,1)),myState.reshape((2,1))))
+                print(targ,myState)  
             dydt[vertex_indices[name]:vertex_indices[name]+2]=np.array((controlInput))
         return dydt.flatten()
     
@@ -169,8 +170,7 @@ class netwk():
             return (1-self.LazyQ)*self.coopGain + self.omega*((s-self.rsafe)**(1+self.alpha))
         if s > self.rcomm:
                 return 0
-        # return 1
-        
+        # return 1        
     def dummyUpdate(self):
         # change all agents to rando positions 
         for name in self.graph.names:

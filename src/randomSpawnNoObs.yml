@@ -4,7 +4,7 @@ Wksp_bnds:
   upper:
     - [15]
   lower:
-    - [-15]
+    - [0]
 
 
 Obstacles:
@@ -12,10 +12,10 @@ Obstacles:
   sphereWorld:
     obsNum: 3
     obsCenter:
-      - [-5,5]
-      - [2,2]
-      - [5,-5]
-    obsRadii: [4,3,2]
+      - [3,12]
+      - [12,3]
+      - [5,5]
+    obsRadii: [1,1,2]
 
   rectangle:
     - [6, 2]
@@ -29,8 +29,8 @@ Obstacles:
 
 pnpParameters:
   Lazy: 0
-  coopGain: 100   
-  leaderGain: 0.01 #(this is gamma)
+  coopGain: 1  
+  leaderGain: 0.1 #(this is gamma)
   alpha: 1
   rsafe: 0.7
   rcomm: 3

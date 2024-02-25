@@ -5,7 +5,7 @@ import random
 import shapely
 
 from Obstacle import shapelyObstacle
-from scipy.optimize import minimize
+# from scipy.optimize import minimize
 import qpsolvers
 
 
@@ -52,20 +52,11 @@ class sphereworldEnv(environment):
     
     def navfSphere(self,state,goal):
         self.A=np.vstack((self.workspaceMatrix,self.safetyMatrix(state)))
-        # print(state)
-        # print(self.A)
         self.bb=np.vstack((self.workspaceCoefficients-(self.workspaceMatrix@goal).reshape(len(self.workspaceMatrix),1),self.safetyCoeffs(goal,state)))
-        # print(self.bb)
-        x0=np.ravel(state-goal.reshape((2,1)))
-        result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='osqp')
-
+        result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='quadprog')
         # result = minimize(self.objectiveFun, x0, constraints=constraints, options=options, method='SLSQP')
-        print(result.T)
-        return goal.reshape((2,1))+result.reshape((2,1))-state
-    
-    def objectiveFun(self,x):
-        # x = x.reshape((-1, 1))
-        return 0.5*x.T@np.eye(2)@x
+        return goal+result.reshape((2,1))-state
+
     def safetyMatrix(self,state):
         # Computes the coefficient matrix describing the safe polytope at the point z
         m=np.zeros((self.obstacleNum,2))

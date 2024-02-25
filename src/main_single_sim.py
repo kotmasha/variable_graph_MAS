@@ -12,10 +12,10 @@ from graph_w_names import graph_w_names
 from Network import netwk
 import matplotlib.pyplot as plt
 import shapely
-import universal
 from time import sleep
 import matplotlib.animation as animation
 from scipy.integrate import odeint
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 if len(sys.argv) != 3:
     print("Usage: main_single_sim.py <filename.yml>")
@@ -30,7 +30,7 @@ with open(instructions_yaml, 'r') as file:
 # prepare work file names 
 animationFile=data['workPath']+'pnpMovie.mp4'
 runDataFile=data['workPath']+'runData.json'
-Nframes=1000 # number of frames in the animation
+Nframes=10000 # number of frames in the animation
 worldType=data['Obstacles']['worldType']
 obstacleData=data['Obstacles']
 upper=int(data['Wksp_bnds']['upper'][0][0])
@@ -69,26 +69,26 @@ def updateAni(content):
 def frameCounter(n,obj):
     for frame in range(n):
         yield obj
-# flowTime=np.linspace(0,simTime,simTime*60)
-# odeSol=odeint(net.pnpFlowMap,net.y0.flatten(),flowTime,full_output=1,mxstep=50)
+flowTime=np.linspace(0,simTime,simTime*60)
+odeSol=odeint(net.pnpFlowMap,net.y0.flatten(),flowTime,full_output=1,mxstep=50)
 
 
 
 plt.legend(loc='best')
 
 
-ani=animation.FuncAnimation(
-    fig=net.figure,
-    func=updateAni,
-    # frames=frameCounter(Nframes,net),
-    frames=[net for item in range(Nframes)], 
-    interval=1,
-    # cache_frame_data=False,
-    save_count=Nframes,
-)
-# ffmpegWriter=animation.writers['ffmpeg']
-
-ani.save(animationFile, writer="ffmpeg", dpi=100, fps=120)
+# ani=animation.FuncAnimation(
+#     fig=net.figure,
+#     func=updateAni,
+#     # frames=frameCounter(Nframes,net),
+#     frames=[net for item in range(Nframes)], 
+#     interval=1,
+#     # cache_frame_data=False,
+#     save_count=Nframes,
+# )
+# animationFile = r"c://Users/ishan/Desktop/animation.mp4" 
+# writerVideo = animation.FFMpegWriter(fps=60) 
+# ani.save('pnpDemo.mp4', writer=writerVideo)
 plt.show()    
 
 
