@@ -1,13 +1,11 @@
 
 from numpy import linalg as la
 import numpy as np
-import math
 import random
 import shapely
-import universal
+
 from Obstacle import shapelyObstacle
 from scipy.optimize import minimize
-import quadprog
 import qpsolvers
 
 
@@ -59,7 +57,7 @@ class sphereworldEnv(environment):
         self.bb=np.vstack((self.workspaceCoefficients-(self.workspaceMatrix@goal).reshape(len(self.workspaceMatrix),1),self.safetyCoeffs(goal,state)))
         # print(self.bb)
         x0=np.ravel(state-goal.reshape((2,1)))
-        result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='quadprog')
+        result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='osqp')
 
         # result = minimize(self.objectiveFun, x0, constraints=constraints, options=options, method='SLSQP')
         print(result.T)
