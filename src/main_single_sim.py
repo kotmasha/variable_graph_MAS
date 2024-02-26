@@ -26,19 +26,6 @@ simTime=int(sys.argv[2])
 # Read data from the YAML file
 with open(instructions_yaml, 'r') as file:
     data = yaml.safe_load(file)
-variable_class_mapping = {}
-
-# Iterate through global namespace
-for name, obj in globals().items():
-    if isinstance(obj, type):  # Check if the object is a class
-        # Check if the class matches criteria based on variables from YAML
-        if name in data.values():
-            variable_class_mapping[name] = obj
-
-# Now variable_class_mapping contains the mapping of variables to their respective classes
-print(variable_class_mapping)
-
-
 
 # prepare work file names 
 animationFile=data['workPath']+'pnpMovie.mp4'
@@ -49,12 +36,15 @@ obstacleData=data['Obstacles']
 upper=int(data['Wksp_bnds']['upper'][0][0])
 lower=int(data['Wksp_bnds']['lower'][0][0])
 names=data['Agents']['Names']
-
-if len(data['Agents'])>3:
+agentTypes={}
+if len(data['Agents'])>4:
     stateWname=data['Agents']['NamesandPos']
 else:
     stateWname=None
-
+for name, obj in globals().items():
+    if isinstance(obj, type):  # Check if the object is a class
+        if name in data['Agents']['AgentType']:
+            agentTypes[name] = obj
 pnpParameters=data['pnpParameters']
 # each edge is represented as a tuple of names
 edges=[tuple(item) for item in data['Agents']['tree_mat_names']]

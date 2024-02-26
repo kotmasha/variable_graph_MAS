@@ -50,6 +50,12 @@ Agents:
     - "Zoe"
     - "AAA"
     - "YYY"
+  AgentType:
+    - "sphereNav"
+    - "sphereNav"
+    - "sphereNav"
+    - "sphereNav"
+    - "sphereNav"
 
   NamesandPos:
       - ["Joe" ,[-14,-14]]

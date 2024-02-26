@@ -38,7 +38,6 @@ pnpParameters:
 netID: 'AutonomyPark'
 
 Agents:
-
   tree_mat_names:
     - ["Bob","Joe"]
     - ["Joe","Josh"]
@@ -60,6 +59,17 @@ Agents:
     - "HHH"
     - "VVV"
     - "WWW"
+  AgentType:
+    - "sphereNav"
+    - "sphereNav"
+    - "sphereNav"
+    - "sphereNav"
+    - "sphereNav"
+    - "sphereNav"
+    - "sphereNav"
+    - "sphereNav"
+    - "sphereNav"
+    - "sphereNav"
   Leaders:
     Zoe:
       Target: [14,14]
