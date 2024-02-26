@@ -26,6 +26,19 @@ simTime=int(sys.argv[2])
 # Read data from the YAML file
 with open(instructions_yaml, 'r') as file:
     data = yaml.safe_load(file)
+variable_class_mapping = {}
+
+# Iterate through global namespace
+for name, obj in globals().items():
+    if isinstance(obj, type):  # Check if the object is a class
+        # Check if the class matches criteria based on variables from YAML
+        if name in data.values():
+            variable_class_mapping[name] = obj
+
+# Now variable_class_mapping contains the mapping of variables to their respective classes
+print(variable_class_mapping)
+
+
 
 # prepare work file names 
 animationFile=data['workPath']+'pnpMovie.mp4'
@@ -36,6 +49,7 @@ obstacleData=data['Obstacles']
 upper=int(data['Wksp_bnds']['upper'][0][0])
 lower=int(data['Wksp_bnds']['lower'][0][0])
 names=data['Agents']['Names']
+
 if len(data['Agents'])>3:
     stateWname=data['Agents']['NamesandPos']
 else:
@@ -59,6 +73,11 @@ elif worldType==2:
 graph=graph_w_names(names,edges)
 net=netwk(netID,graph,env,leaders,pnpParameters,stateWname)
 
+# step=0.001
+# for timestep in range(0,Nframes,step):
+#     net.pnpUpdate()
+#     net.updateVisualization()
+# sys.exit()
 def updateAni(content):
     # update agent positions
     # content.dummyUpdate()

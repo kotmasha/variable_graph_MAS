@@ -62,7 +62,7 @@ class netwk():
             uv.col2tup(self.agents[name].pos),
             radius=0.2,
             label=name,
-            color='blue' if name in self.leaders else 'red',
+            color='purple' if name in self.leaders else 'orange',
             # animated=True,
             ) for name in self.graph.names}
 
@@ -190,7 +190,7 @@ class netwk():
             
         for edge in self.graph.edges:
             self.edgesVisual[edge].set_xy(np.asarray(np.hstack((self.agents[edge[0]].pos,self.agents[edge[1]].pos)).T))
-            
+        plt.show()
         return None    
 
 
