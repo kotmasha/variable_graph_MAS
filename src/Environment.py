@@ -7,7 +7,7 @@ import shapely
 from Obstacle import shapelyObstacle
 # from scipy.optimize import minimize
 import qpsolvers
-
+import cvxopt
 
 class environment() :
     def __init__(self,outerbounds,obstacleData):
@@ -53,7 +53,11 @@ class sphereworldEnv(environment):
     def navfSphere(self,state,goal):
         self.A=np.vstack((self.workspaceMatrix,self.safetyMatrix(state)))
         self.bb=np.vstack((self.workspaceCoefficients-(self.workspaceMatrix@goal).reshape(len(self.workspaceMatrix),1),self.safetyCoeffs(goal,state)))
-        result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='quadprog')
+        # result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='quadprog')
+        res=cvxopt.solvers.qp(np.eye(2),np.zeros((2,1)),self.A,self.bb)
+        if 'optimal' not in res['status']:
+            return None
+        result= np.array(res['x'])
         # result = minimize(self.objectiveFun, x0, constraints=constraints, options=options, method='SLSQP')
         return goal+result.reshape((2,1))-state
 

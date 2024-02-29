@@ -51,11 +51,11 @@ Agents:
     - "AAA"
     - "YYY"
   AgentType:
-    - "sphereNav"
-    - "sphereNav"
-    - "sphereNav"
-    - "sphereNav"
-    - "sphereNav"
+    - ['Joe',"sphereNav"]
+    - ['Josh',"sphereNav"]
+    - ['Zoe',"sphereNav"]
+    - ['AAA',"sphereNav"]
+    - ['YYY',"sphereNav"]
 
   NamesandPos:
       - ["Joe" ,[-14,-14]]

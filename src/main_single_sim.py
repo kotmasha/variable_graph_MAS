@@ -17,6 +17,7 @@ import matplotlib.animation as animation
 from scipy.integrate import odeint
 from matplotlib.animation import FuncAnimation, PillowWriter
 
+
 if len(sys.argv) != 3:
     print("Usage: main_single_sim.py <filename.yml>")
     exit()

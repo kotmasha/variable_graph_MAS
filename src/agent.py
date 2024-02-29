@@ -10,7 +10,7 @@ import random
 from scipy.sparse.csgraph import depth_first_order
 import universal
 
-class Agent:
+class baseAgent:
     def __init__(self,name,env,network,task,pos):
         self.name=name
         self.env=env
@@ -48,10 +48,12 @@ class Agent:
             controlInput=controlInput-self.network.leaderGain*self.navf(targ) 
         return controlInput
     
-class sphereAgent(Agent):
-    def __init__(self):
+class sphereAgent(baseAgent):
+    def __init__(self,name,env,network,task,pos):
+        super().__init__(name,env,network,task,pos)
 
-        return 
+    def navSphere(self):
+        print('watttttttttt')
     
     
 

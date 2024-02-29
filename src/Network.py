@@ -3,13 +3,15 @@ from numpy import linalg as la
 import numpy as np
 
 import math
-from agent import Agent
+import agent
+from agent import baseAgent
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import shapely
 import universal as uv
 # from Navigation import radialNav as navField
 from agentTask import agentask
+import inspect
 
 class netwk():
 
@@ -25,6 +27,7 @@ class netwk():
         self.LazyQ=bool(pnpParameters['Lazy'])
         self.coopGain=int(pnpParameters['coopGain'])
         self.stateWname=stateWname
+        self.agentType=self.get_subclasses(agent,baseAgent)
         self.dt=0.001
         if self.stateWname:
             self.mode=1
@@ -115,9 +118,6 @@ class netwk():
             dydt[vertex_indices[name]:vertex_indices[name]+2]=np.array((controlInput))
         return dydt.flatten()
     
-    def nameMap(self,name,xStack):
-
-        return 0   
     def neighbors(self,name):
         return self.graph.neighbors(name)
     
@@ -131,8 +131,7 @@ class netwk():
             self.spawnAgents()
         elif self.mode==1:
             for name,pos in self.stateWname:
-
-                self.agents[name]=Agent(name, self.env, self,self.task.taskList[name], np.array(pos).reshape((2,1)))
+                self.agents[name]=self.agentType[name](name, self.env, self,self.task.taskList[name], np.array(pos).reshape((2,1)))
         else:
             raise Exception("Invalid network generation mode")
         
@@ -141,12 +140,10 @@ class netwk():
     
     def spawnAgents(self):
     # go over dfs ordering of the vertices
-        dfsOrder,dfsPredecessors=self.graph.dfs()
-        
+        dfsOrder,dfsPredecessors=self.graph.dfs()        
         # for each vertex spawn a position
         for item,predName in zip(dfsOrder,dfsPredecessors):
         # for item,predName in self.graph.dfs():
-
             # if item has no predecessor then generate a random point in the workspace
             if predName == None:
                 pt=self.env.generateRndPoint()
@@ -154,10 +151,9 @@ class netwk():
             else:
                 parent_pos=self.agents[predName].pos
                 pt=self.env.generateRndPoint(self.rsafe,parent_pos)
-
             # assign the generated pt to an agent object named item
             # here pt is a vertical np array
-            self.agents[item]=Agent(item, self.env, self,self.task.taskList[item], pt)
+            self.agents[item]=self.agentType[item](item, self.env, self,self.task.taskList[item], pt)
         
         
 
@@ -193,4 +189,9 @@ class netwk():
         plt.show()
         return None    
 
-
+    def get_subclasses(module, base_class,agentTypedata):
+        subclasses = []
+        for name, obj in inspect.getmembers(module):
+            if inspect.isclass(obj) and issubclass(obj, base_class) and obj != base_class:                
+                subclasses.append(obj)
+        # for 

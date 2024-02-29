@@ -60,19 +60,17 @@ Agents:
     - "VVV"
     - "WWW"
   AgentType:
-    - "sphereNav"
-    - "sphereNav"
-    - "sphereNav"
-    - "sphereNav"
-    - "sphereNav"
-    - "sphereNav"
-    - "sphereNav"
-    - "sphereNav"
-    - "sphereNav"
-    - "sphereNav"
+    - ['Bob',"sphereNav"]
+    - ['Joe',"sphereNav"]
+    - ['Josh',"sphereNav"]
+    - ['Zoe',"sphereNav"]
+    - ['XXX',"sphereNav"]
+    - ['YYY',"sphereNav"]
+    - ['ZZZ',"sphereNav"]
+    - ['HHH',"sphereNav"]
+    - ['VVV',"sphereNav"]
+    - ['WWW',"sphereNav"]    
   Leaders:
     Zoe:
       Target: [14,14]
       keepUpQ:  False
-    
-
