@@ -37,15 +37,13 @@ obstacleData=data['Obstacles']
 upper=int(data['Wksp_bnds']['upper'][0][0])
 lower=int(data['Wksp_bnds']['lower'][0][0])
 names=data['Agents']['Names']
+stateWnameQ=int(data['Agents']['stateWnames'])
 agentTypes={}
-if len(data['Agents'])>4:
+if stateWnameQ==1:
     stateWname=data['Agents']['NamesandPos']
 else:
     stateWname=None
-for name, obj in globals().items():
-    if isinstance(obj, type):  # Check if the object is a class
-        if name in data['Agents']['AgentType']:
-            agentTypes[name] = obj
+
 pnpParameters=data['pnpParameters']
 # each edge is represented as a tuple of names
 edges=[tuple(item) for item in data['Agents']['tree_mat_names']]
@@ -69,16 +67,16 @@ net=netwk(netID,graph,env,leaders,pnpParameters,stateWname)
 #     net.pnpUpdate()
 #     net.updateVisualization()
 # sys.exit()
-def updateAni(content):
-    # update agent positions
-    # content.dummyUpdate()
-    content.pnpUpdate()
-    # update the visualization data
-    content.updateVisualization()
+# def updateAni(content):
+#     # update agent positions
+#     # content.dummyUpdate()
+#     content.pnpUpdate()
+#     # update the visualization data
+#     content.updateVisualization()
 
-def frameCounter(n,obj):
-    for frame in range(n):
-        yield obj
+# def frameCounter(n,obj):
+#     for frame in range(n):
+#         yield obj
 flowTime=np.linspace(0,simTime,simTime*60)
 odeSol=odeint(net.pnpFlowMap,net.y0.flatten(),flowTime,full_output=1,mxstep=50)
 

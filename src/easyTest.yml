@@ -4,7 +4,7 @@ Wksp_bnds:
   upper:
     - [15]
   lower:
-    - [-15]
+    - [0]
 
 
 Obstacles:
@@ -12,10 +12,10 @@ Obstacles:
   sphereWorld:
     obsNum: 3
     obsCenter:
-      - [8,0]
-      - [-4,6.92]
-      - [-4,-6.92]
-    obsRadii: [5,4,3]
+      - [3,12]
+      - [12,3]
+      - [7,7]
+    obsRadii: [2,2,3]
 
   rectangle:
     - [6, 2]
@@ -28,43 +28,36 @@ Obstacles:
     - [9, 7]
 
 pnpParameters:
-  Lazy: 0envgamma)
+  Lazy: 0
+  coopGain: 1  
+  leaderGain: 0.1 #(this is gamma)
   alpha: 1
   rsafe: 0.7
-  rcomm: 2
+  rcomm: 3
 
 netID: 'AutonomyPark'
 
 Agents:
+  stateWnames: 1 #1 if provided initial state  0 otherwise
+  NamesandPos:
+    - ["Joe" ,[3,5]]
+    - ["Josh", [2,4]]
+    - ["Bob",[4,4]]
   tree_mat_names:
+    - ["Bob","Joe"]
     - ["Joe","Josh"]
-    - ["Josh","Zoe"]
-    - ["Zoe", "AAA"]
-    - ["Zoe", "YYY"]
 
   Names:
-    - "Joe" 
+    - "Bob"
+    - "Joe"
     - "Josh"
-    - "Zoe"
-    - "AAA"
-    - "YYY"
+
   AgentType:
+    - ['Bob',"sphereNav"]
     - ['Joe',"sphereNav"]
     - ['Josh',"sphereNav"]
-    - ['Zoe',"sphereNav"]
-    - ['AAA',"sphereNav"]
-    - ['YYY',"sphereNav"]
-
-  NamesandPos:
-      - ["Joe" ,[-14,-14]]
-      - ["Josh", [-14,-13]]
-      - ["Zoe", [-13,-12]]
-      - ["AAA", [-12,-13]]
-      - ["YYY", [-14,-10]]
 
   Leaders:
-    Zoe:
+    Joe:
       Target: [14,14]
       keepUpQ:  False
-    
-
