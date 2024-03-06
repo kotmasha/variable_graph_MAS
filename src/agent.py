@@ -39,7 +39,6 @@ class baseAgent:
                 relpos=positions[name]-self.pos
                 navxi=self.network.tension_func(la.norm(relpos))*(relpos.T@relpos).reshape((1,1))/(0.+(relpos.T@navvec).reshape((1,1)))
                 pnpSummand=pnpSummand+navxi*navvec
-            print(self.name,pnpSummand)
         targ=self.task['target']
         if targ is None:
             controlInput=controlInput+pnpSummand

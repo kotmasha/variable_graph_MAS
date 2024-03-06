@@ -1,12 +1,13 @@
 
-workPath: '~/sims/variable_graph_MAS/sims/easyTest/'
+workPath: '~/sims/variable_graph_MAS/sims/edgeCases/'
 Wksp_bnds:
   upper:
     - [15]
   lower:
     - [0]
 
-solverType: 'animation'
+solverType: 'Euler'
+
 Obstacles:
   worldType: 0 #0 is sphere world, 1 is star shaped, 2 is polygonal 
   sphereWorld:
@@ -28,7 +29,7 @@ Obstacles:
     - [9, 7]
 
 pnpParameters:
-  Lazy: 1
+  Lazy: 0
   coopGain: 10  
   leaderGain: 0.01 #(this is gamma)
   alpha: 1.01
@@ -40,22 +41,17 @@ netID: 'AutonomyPark'
 Agents:
   stateWnames: 1 #1 if provided initial state  0 otherwise
   NamesandPos:
-    - ["Joe" ,[4,5]]
-    - ["Josh", [2,4]]
-    - ["Bob",[4,4]]
-  tree_mat_names:
-    - ["Bob","Joe"]
-    - ["Joe","Josh"]
+    - ["Joe" ,[3,5]]
 
+  tree_mat_names:
+    - ['None','None']
   Names:
-    - "Bob"
     - "Joe"
-    - "Josh"
+
 
   AgentType:
-    - ['Bob',"sphereNav"]
     - ['Joe',"sphereNav"]
-    - ['Josh',"sphereNav"]
+
 
   Leaders:
     Joe:

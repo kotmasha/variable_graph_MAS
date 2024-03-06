@@ -38,6 +38,7 @@ pnpParameters:
 netID: 'AutonomyPark'
 
 Agents:
+  stateWnames: 0 
   tree_mat_names:
     - ["Bob","Joe"]
     - ["Joe","Josh"]

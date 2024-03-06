@@ -13,11 +13,14 @@ class graph_w_names:
     def __init__(self,names,edges):
         self.names=names 
         self.edges=edges
-        self.vertex_indices={vertex:idx for idx,vertex in enumerate(names)}
-        edges_indices = [(self.vertex_indices[edge[0]], self.vertex_indices[edge[1]]) for edge in edges]
-        # Use edges_indices instead of rows and cols
-        data = np.ones(len(edges_indices), dtype=int)
-        self.graph = csr_matrix((data, zip(*edges_indices)), shape=(len(names), len(names)))
+        if len(self.edges)<2:
+            return None
+        else:
+            self.vertex_indices={vertex:idx for idx,vertex in enumerate(names)}
+            edges_indices = [(self.vertex_indices[edge[0]], self.vertex_indices[edge[1]]) for edge in edges]
+            # Use edges_indices instead of rows and cols
+            data = np.ones(len(edges_indices), dtype=int)
+            self.graph = csr_matrix((data, zip(*edges_indices)), shape=(len(names), len(names)))
      
     def idxToNames(self,ls):
         return [(None if idx==-9999 else self.names[idx]) for idx in ls]

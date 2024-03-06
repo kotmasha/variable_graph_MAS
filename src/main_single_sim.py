@@ -29,7 +29,8 @@ with open(instructions_yaml, 'r') as file:
     data = yaml.safe_load(file)
 
 # prepare work file names 
-animationFile=data['workPath']+'pnpMovie.mp4'
+animationFile=data['workPath']+'pnpDemo.mp4'
+solverType=data['solverType']
 runDataFile=data['workPath']+'runData.json'
 Nframes=10000 # number of frames in the animation
 worldType=data['Obstacles']['worldType']
@@ -61,42 +62,49 @@ elif worldType==2:
 
 graph=graph_w_names(names,edges)
 net=netwk(netID,graph,env,leaders,pnpParameters,stateWname)
+def updateAni(content):
+    # update agent positions
+    # content.dummyUpdate()
+    content.pnpUpdate()
+    # update the visualization data
+    content.updateVisualization()
 
-# step=0.001
-# for timestep in range(0,Nframes,step):
-#     net.pnpUpdate()
-#     net.updateVisualization()
-# sys.exit()
-# def updateAni(content):
-#     # update agent positions
-#     # content.dummyUpdate()
-#     content.pnpUpdate()
-#     # update the visualization data
-#     content.updateVisualization()
+if solverType=='Euler':
+    flowTime=np.linspace(0,simTime,simTime*60)
 
-# def frameCounter(n,obj):
-#     for frame in range(n):
-#         yield obj
-flowTime=np.linspace(0,simTime,simTime*60)
-odeSol=odeint(net.pnpFlowMap,net.y0.flatten(),flowTime,full_output=1,mxstep=50)
+    for timestep in flowTime:
+        net.pnpUpdate()
+        net.updateVisualization()
+    
+elif solverType=='odeInt':
+    flowTime=np.linspace(0,simTime,simTime*60)
+    odeSol=odeint(net.pnpFlowMap,net.y0.flatten(),flowTime,full_output=1,mxstep=50)
+    data=odeSol[0]
+    plt.clf()
+    plt.plot(flowTime,data[:,0])
+else:
+    ani=animation.FuncAnimation(
+        fig=net.figure,
+        func=updateAni,
+        # frames=frameCounter(Nframes,net),
+        frames=[net for item in range(Nframes)], 
+        interval=1,
+        # cache_frame_data=False,
+        save_count=Nframes,
+    )
+    myPath=os.path.abspath(__file__)
+    animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
+    writerVideo = animation.FFMpegWriter(fps=60) 
+    ani.save(animationFile+'/pnpMovie.mp4', writer=writerVideo)
 
 
+
+
+def frameCounter(n,obj):
+    for frame in range(n):
+        yield obj
 
 plt.legend(loc='best')
-
-
-# ani=animation.FuncAnimation(
-#     fig=net.figure,
-#     func=updateAni,
-#     # frames=frameCounter(Nframes,net),
-#     frames=[net for item in range(Nframes)], 
-#     interval=1,
-#     # cache_frame_data=False,
-#     save_count=Nframes,
-# )
-# animationFile = r"c://Users/ishan/Desktop/animation.mp4" 
-# writerVideo = animation.FFMpegWriter(fps=60) 
-# ani.save('pnpDemo.mp4', writer=writerVideo)
 plt.show()    
 
 
