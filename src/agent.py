@@ -12,10 +12,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist, PoseStamped
 from tf_transformations import quaternion_from_euler
-from interfaces.srv import AddEdge
-from interfaces.srv import RmEdge
-from interfaces.srv import Task
-from interfaces.srv import Navf
+
 
 
 class baseAgent(Node):
@@ -28,7 +25,7 @@ class baseAgent(Node):
         self.neighbors=network.neighbors(name)
         self.task=task
 
-        self.addEgde=self.create_service(AddEdge,'AddEdge',)
+        # self.addEgde=self.create_service(AddEdge,'AddEdge',)
         #Define parameters here
         self.declare_parameter('x_init', self.pos[0])
         self.declare_parameter('y_init', self.pos[1])
