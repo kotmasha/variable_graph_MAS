@@ -4,7 +4,7 @@ import math
 from numpy import linalg as la
 import numpy as np
 import random
-from scipy.optimize import minimize
+from scipy.optimize import minimize,LinearConstraint
 class navigation:
     def __init__(self,wkspCoeffs,wkspMatrix,obstacleNum,obstacleRadius,obstacleCenters): 
 
@@ -15,8 +15,11 @@ class navigation:
         self.obstacleCenters=obstacleCenters
         
     def navfSphere(self,state,goal):
-        A = np.vstack((self.workspaceMatrix, self.safetyMatrix[state]))
-        bb = np.concatenate((self.workspaceCoefficients - self.workspaceMatrix.dot(goal), self.safetyCoefficients[goal,state]))
+        #M is workspace matrix
+        #C is 
+        # A is the coeff matrix of inequality 
+        A = np.vstack((self.workspaceMatrix, self.safetyMatrix(state)))
+        bb = np.vstack((self.workspaceCoefficients - self.workspaceMatrix @ goal, self.safetyCoefficients(goal,state)))
         constraints = ({'type': 'ineq', 'fun': lambda x: A.dot(x) - bb})
         x0=state-goal
         options={'disp':False}
@@ -26,12 +29,12 @@ class navigation:
     def objective(x):
         return np.sum(x**2)
     
-    def safetyCoeffs(self,goal,state):
+    def safetyCoefficients(self,goal,state):
         # input should be column vectors
         b=np.zeros((self.obstacleNum,1))
         dists=self.obsDist(state)
         cons=self.safetyMatrix(state)
-        b=b+0.5*(dists*dists-self.obstacleRadius*dists)+cons*(state-goal) 
+        b=b+0.5*(dists*dists-self.obstacleRadius*dists)+cons @ (state-goal) 
         return b
     
     def safetyMatrix(self,state):
