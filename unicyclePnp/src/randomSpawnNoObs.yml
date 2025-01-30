@@ -1,0 +1,77 @@
+
+workPath: 'C:\simulations\pnpPython\sims\randomSpawnNoObs\'
+Wksp_bnds:
+  upper:
+    - [15]
+  lower:
+    - [0]
+
+
+Obstacles:
+  worldType: 0 #0 is sphere world, 1 is star shaped, 2 is polygonal 
+  sphereWorld:
+    obsNum: 3
+    obsCenter:
+      - [3,12]
+      - [12,3]
+      - [5,5]
+    obsRadii: [1,1,2]
+
+  rectangle:
+    - [6, 2]
+    - [7, 2]
+    - [7, 9]
+    - [6, 9]
+    - [9, 9]
+    - [11, 9]
+    - [11, 7]
+    - [9, 7]
+
+pnpParameters:
+  Lazy: 0
+  coopGain: 1  
+  leaderGain: 0.1 #(this is gamma)
+  alpha: 1
+  rsafe: 0.7
+  rcomm: 3
+
+netID: 'AutonomyPark'
+
+Agents:
+  stateWnames: 0 
+  tree_mat_names:
+    - ["Bob","Joe"]
+    - ["Joe","Josh"]
+    - ["Bob","Zoe"]
+    - ["Zoe", "XXX"]
+    - ["Bob", "YYY"]
+    - ["YYY", "ZZZ"]
+    - ["ZZZ", "HHH"]
+    - ["HHH", "VVV"]
+    - ["VVV", "WWW"]
+  Names:
+    - "Bob"
+    - "Joe"
+    - "Josh"
+    - "Zoe"
+    - "XXX"
+    - "YYY"
+    - "ZZZ"
+    - "HHH"
+    - "VVV"
+    - "WWW"
+  AgentType:
+    - ['Bob',"sphereNav"]
+    - ['Joe',"sphereNav"]
+    - ['Josh',"sphereNav"]
+    - ['Zoe',"sphereNav"]
+    - ['XXX',"sphereNav"]
+    - ['YYY',"sphereNav"]
+    - ['ZZZ',"sphereNav"]
+    - ['HHH',"sphereNav"]
+    - ['VVV',"sphereNav"]
+    - ['WWW',"sphereNav"]    
+  Leaders:
+    Zoe:
+      Target: [14,14]
+      keepUpQ:  False
