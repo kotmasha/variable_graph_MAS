@@ -1,2 +1,3 @@
 qpsolvers[open_source_solvers]
 quadprog
+ffmpeg
