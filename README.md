@@ -1,3 +1,2 @@
 # variable_graph_MAS
-
-Required Packages:
+Install dependencies by running: pip install -r requirements.txt
