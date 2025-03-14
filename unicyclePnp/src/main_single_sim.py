@@ -69,7 +69,7 @@ if worldType==0:
 elif worldType==1:
     env=starworldEnv(outerbounds,obstacleData)    
 elif worldType==2:
-    env=polygonEnv()
+    env=polygonEnv(outerbounds,obstacleData)
 
 graph=graph_w_names(names,edges)
 net=netwk(netID,graph,env,leaders,pnpParameters,agentSpawn,simTime,worldType,stateWname)

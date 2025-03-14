@@ -119,10 +119,6 @@ class sphereworldEnv(environment):
             if i ==0:
                 viz.text(circ.centroid.x,circ.centroid.y,"Obstacles",fontsize=20,color='white',ha='center',va='center')
 
-
-
-
-
 class starworldEnv(environment):
     def __init__(self,outerbounds,obstacleData):
         super().__init__(outerbounds,obstacleData)
@@ -410,7 +406,6 @@ class starworldEnv(environment):
         return self.cInftyBumpDeriv(x)
     
     def cInftyBump(self, x):
-        """C^\infty bump function."""
         # print("in cinfbump",x)
         if x <= 0:
             return np.zeros((1,1))
@@ -418,48 +413,40 @@ class starworldEnv(environment):
             # print('waatt',np.exp(-1 / x))
             return np.exp(-1 / x)
     
-    def cInftyBumpDeriv(self, x):
-        """Derivative of the C^\infty bump function."""
-        if x <= 0:
-            return np.zeros((1,1))
-        else:
-            return np.exp(-1 / x) * (x ** -2)
+    # def cInftyBumpDeriv(self, x):
+    #     """Derivative of the C^\infty bump function."""
+    #     if x <= 0:
+    #         return np.zeros((1,1))
+    #     else:
+    #         return np.exp(-1 / x) * (x ** -2)
     
     def cOneBump(self, x):
-        """C^1 bump function."""
         if x <= 0:
             return 0
         else:
             return x ** 2
     
     def cOneBumpDeriv(self, x):
-        """Derivative of C^1 bump function."""
         if x <= 0:
             return 0
         else:
             return 2 * x
     
     def cTwoBump(self, x):
-        """C^1 bump function."""
         if x <= 0:
             return 0
         else:
             return x ** 3
     
     def cTwoBumpDeriv(self, x):
-        """Derivative of C^1 bump function."""
         if x <= 0:
             return 0
         else:
             return 3 * x ** 2
 
-
-
-
-
-
 class polygonEnv(environment):    
-    def __init__(self):
+    def __init__(self,outerbounds,obstacleData):
+        super().__init__(outerbounds,obstacleData)
         obs=self.obstacleData['rectangle']
         obsNum=int(len(obs)/4)
         k=0        
@@ -467,5 +454,124 @@ class polygonEnv(environment):
             faa=obs[k:k+4]
             self.workspace=shapely.difference(self.workspace,shapely.geometry.polygon.orient(shapelyObstacle.spawnPoly(faa),1.0))
             k += 4
+    
 
-    # \nRadius of\ncommunication=3m
+
+
+
+
+    # def polysignarea(xy):
+    #     """
+    #     polysignarea(xy) determines the signed area of a non-self-intersecting 
+    #     polygon with vertices xy
+        
+    #     Input:
+    #         xy   : Vertex coordinated of a non-self-intersecting polygon
+    #             (Nx2 numpy.array)   
+    #     Output:
+    #         area : Signed area of the polygon
+    #     Usage:
+    #         import numpy as np
+    #         from cvxpolygeom import polysignarea 
+    #         xy = np.array([[0,0],[0,1],[1,0]])
+    #         area = polysignarea(xy)
+    #     """
+    #     xy = xy.reshape(-1,2) # Convert the input data into a 2D array 
+    #     numVertex = xy.shape[0] # Number of vertices
+    #     area = 0.0
+    #     for ck in range(0,numVertex):
+    #         cn = (ck + 1) % numVertex
+    #         area = area + np.cross(xy[ck],xy[cn])
+    #     area = 0.5*area
+
+    #     return area    
+    # def ispolycw(xy):
+    #     """
+    #     ispolycw(xy) determines if the vertices, xy, of a non-self-intersecting polygon 
+    #     are in clockwise order. Its computation is based on the signed are of the polygon. 
+        
+    #     Input:
+    #         xy : Vertex coordinated of a non-self-intersecting polygon
+    #             (Nx2 numpy.array)   
+    #     Output:
+    #         cw : a boolean variable which is True if the input polygon is in clockwise order 
+    #             (Boolean [True/False])
+    #     Usage:
+    #         import numpy as np
+    #         from cvxpolygeom import ispolycw 
+    #         xy = np.array([[0,0],[0,1],[1,0]])
+    #         cw = ispolycw(xy)
+    #     """
+    #     return (polysignarea(xy) <= 0)
+
+    # # \nRadius of\ncommunication=3m
+    # def polydist(xy, p):
+    #     """
+    #     polydist(xy, p) computes the distance between a set of points, p, and 
+    #     a polygon, xy, and return the closest points on the polygon boundary.   
+    #     Here, distance is defined as the minimum distance between an input 
+    #     point and any point on the polygon boundary.
+
+    #     Input:  
+    #         xy : Vertex coordinates of a polygon
+    #             (Nx2 numpy.array)
+    #         p  : Coordinates of a set of points
+    #             (Mx2 numpy.array)
+    #     Output: 
+    #         D  : Distance between points and the polygon 
+    #         C  : Coordinates of the closest points on the polygon to the input points
+    #     Usage:
+    #         import numpy as np
+    #         from cvxpolygeom import polydist 
+    #         import matplotlib.pyplot as plt
+    #         import matplotlib.patches as mpatches
+    #         n = 2
+    #         v = 7
+    #         p = 2 * np.random.rand(n,2) - 1
+    #         th = np.linspace(0, 2*np.pi, v)
+    #         xy = np.array([np.cos(th), np.sin(th)]).T
+    #         D, C = polydist(xy, p)
+    #         fig = plt.figure()
+    #         ax = fig.add_subplot(1,1,1)
+    #         ax.add_patch(mpatches.Polygon(xy, closed=True, alpha=0.5))
+    #         plt.plot(p[:,0],p[:,1],'ro')
+    #         plt.plot(C[:,0],C[:,1], 'r*')   
+    #         LX = np.array([p[:,0],C[:,0]])
+    #         LY = np.array([p[:,1],C[:,1]])  
+    #         plt.plot(LX, LY, 'r-')
+    #         ax.axis('equal') 
+    #         fig.show()   
+    #     """
+    #     # Convert input data into 2D arrays
+    #     xy = xy.reshape(-1,2)
+    #     p = p.reshape(-1,2)
+        
+    #     # Distance to empty set is infinity
+    #     if (xy.shape[0] == 0):
+    #         D = np.zeros(p.shape[0])
+    #         D.fill(np.inf)
+    #         C = np.zeros(p.shape)
+    #         C.fill(np.inf) 
+    #         return D,C
+        
+    #     orientsign = 1 - 2 * ispolycw(xy) # orientation of the polygon
+    #     numPoint = p.shape[0] # number of points
+    #     # Relative coordinates of polygon rims
+    #     xyPre = np.roll(xy,1, axis=0)
+    #     dxy = xyPre - xy
+    #     dxyNorm = np.power(np.linalg.norm(dxy,axis=1)[:,np.newaxis],2)
+    #     dxyNorm[(dxyNorm==0)] = 1
+
+    #     # Compute distances and closest points on the polygon boundary  
+    #     D = np.zeros(numPoint)
+    #     C = np.zeros([numPoint,2])
+    #     for k in range(numPoint):
+    #         w = np.sum((p[k] - xy)*dxy,axis=1)[:,np.newaxis]/dxyNorm
+    #         w = np.fmax(np.fmin(w,1),0)
+    #         ctemp = (1-w)*xy + w*xyPre
+    #         dtemp = np.linalg.norm(p[k] - ctemp, axis=1)
+    #         iMin = dtemp.argmin()
+    #         D[k] = dtemp[iMin]
+    #         C[k] = ctemp[iMin]  
+        
+    #     return D,C  

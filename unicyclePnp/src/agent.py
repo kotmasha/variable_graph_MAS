@@ -8,9 +8,9 @@ import numpy as np
 import random
 from scipy.sparse.csgraph import depth_first_order
 import universal
-import rclpy
-from rclpy.node import Node
-from geometry_msgs.msg import Twist, PoseStamped
+# import rclpy
+# from rclpy.node import Node
+# from geometry_msgs.msg import Twist, PoseStamped
 # from tf_transformations import quaternion_from_euler
 
 

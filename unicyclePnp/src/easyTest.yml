@@ -6,7 +6,7 @@ Wksp_bnds:
     - [0]
 solverType: 'ode' #nsfPlots for nsf plots
 Obstacles:
-  worldType: 0 #0 is sphere world, 1 is star shaped, 2 is polygonal 
+  worldType: 2 #0 is sphere world, 1 is star shaped, 2 is polygonal 
   sphereWorld:
     obsNum: 5
     obsCenter:
@@ -26,14 +26,31 @@ Obstacles:
     obsClearance: [0.65,0.65,0.5]
 
   rectangle:
-    - [6, 2]
-    - [7, 2]
-    - [7, 9]
+  # Irregular central shape
+    - [14, 12]
+    - [16, 11]
+    - [18, 13]
+    - [17, 16]
+    - [14, 17]
+    - [12, 15]
+
+  # Top horizontal obstacle
+    - [5, 24]
+    - [15, 24]
+    - [15, 26]
+    - [5, 26]
+
+  # Bottom-left small obstacle
+    - [3, 6]
+    - [6, 6]
     - [6, 9]
-    - [9, 9]
-    - [11, 9]
-    - [11, 7]
-    - [9, 7]
+    - [3, 9]
+
+  # Right vertical obstacle
+    - [22, 10]
+    - [25, 10]
+    - [25, 22]
+    - [22, 22]
 
 pnpParameters:
   Lazy: 1

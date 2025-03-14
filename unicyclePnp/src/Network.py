@@ -14,7 +14,7 @@ from agentTask import agentask
 import inspect
 from itertools import combinations
 from datetime import datetime
-from descartes import PolygonPatch
+# from descartes import PolygonPatch
 from shapely.geometry import MultiPolygon, Polygon
 
 class netwk():
