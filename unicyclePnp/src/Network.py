@@ -5,6 +5,7 @@ import os,sys
 import math
 import agent
 from agent import Agent
+from agent import unicycleAgent
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import shapely
@@ -33,26 +34,19 @@ class netwk():
         self.coopGain=int(pnpParameters['coopGain'])
         self.stateWname=stateWname
         self.timestart=0.0
+        self.agentSpawn=agentSpawn
         self.simTime=simTime
         self.worldType = worldType
-        self.updatedEdges = self.cleanEdge(self.graph.edges)
-        self.edgeData = {
-            'edge': [],
-            'distance': [],
-            'timestep': []
-        }
-        self.nonEdgeData = {
-            'edge': [],
-            'distance': [],
-            'timestep': []
-        }
-        # self.agentType=self.get_subclasses(agent,baseAgent)
-        self.dt=0.01
-        self.notEdges = self.find_non_edges(self.graph.edges)
-        if self.stateWname:
+
+        
+
+        if self.agentSpawn==1:
             self.mode=1
+        elif self.agentSpawn==2:
+            self.mode=2
         else:
             self.mode=0
+
         self.leaders=leaders
         self.m=1/pnpParameters['rsafe']
 
@@ -70,9 +64,59 @@ class netwk():
                 self.omega=self.coopGain*((2+self.alpha)/(2*self.rcomm**(1+self.alpha)))*(self.m**(1+self.alpha)*(self.numEdges-self.m**2))/((self.m-1)**(2+self.alpha))
         self.interiorPt=np.array([-5,-5])
         # if experiment requires agents
-        self.agentSpawn=agentSpawn
-        if self.agentSpawn and self.graph.edges!=None:
+        
+        #unicycle stuff here
+        if agentSpawn==2:
+            self.task=agentask(self.graph,self.leaders)
+            self.populate(self.mode)
+            self.y0=np.empty((0,1))
+            # for name in self.graph.names:
+            #     self.y0=np.vstack((self.y0,self.agents[name].pos))
+            self.figure,self.visualization=plt.subplots()
+            # self.figure=self.visualization.get_figure()       
+            self.workspacePatch=shapely.plotting.plot_polygon(self.env.workspace,add_points=False)
+            self.visualization.add_patch(self.workspacePatch)
+            # self.verticesVisual={name:patches.Circle(
+            # uv.col2tup(self.agents[name].pos),
+            # radius=0.75,
+            # label=name,
+            # color='orange',
+            # animated=True,
+            # ) for name in self.graph.names}
+            radius=1
+            arrowLen=0.9
+            for name in self.graph.names:
+                pos = uv.col2tup(self.agents[name].pos)
+                pose=uv.col2tup(self.agents[name].pose)
+                circle = patches.Circle(pos, radius, color='orange', alpha=0.4)
+                self.visualization.add_patch(circle)
+                arrow_dx=pose[0]*arrowLen
+                arrow_dy=pose[1]*arrowLen
+                arrowPatch = patches.FancyArrow(pos[0],pos[1], arrow_dx, arrow_dy, color='blue', width=0.05, length_includes_head=True)
+                self.visualization.add_patch(arrowPatch)
+            target=np.array([self.leaders['Eigen']['Target'][0],self.leaders['Eigen']['Target'][1]])
+            self.plotQuiver(target)
+            self.goalVisual=self.visualization.plot(self.leaders['Eigen']['Target'][0],self.leaders['Eigen']['Target'][1],'rx')
+            self.env.plotObstacles(self.visualization)
+            self.visualization.grid(False)
+            plt.show()
 
+
+        if self.agentSpawn==1 and self.graph.edges!=None:
+            self.updatedEdges = self.cleanEdge(self.graph.edges)
+            self.edgeData = {
+                'edge': [],
+                'distance': [],
+                'timestep': []
+            }
+            self.nonEdgeData = {
+                'edge': [],
+                'distance': [],
+                'timestep': []
+            }
+            # self.agentType=self.get_subclasses(agent,baseAgent)
+            self.dt=0.01
+            self.notEdges = self.find_non_edges(self.graph.edges)
             self.task=agentask(self.graph,self.leaders)
             self.populate(self.mode)
             self.y0=np.empty((0,1))
@@ -112,9 +156,9 @@ class netwk():
 
             for name in self.graph.names:
                 self.visualization.add_patch(self.verticesVisual[name])
-            target=np.array([self.leaders['Zoe']['Target'][0],self.leaders['Zoe']['Target'][1]])
+            target=np.array([self.leaders['Eigen']['Target'][0],self.leaders['Eigen']['Target'][1]])
             
-            self.goalVisual=self.visualization.plot(self.leaders['Zoe']['Target'][0],self.leaders['Zoe']['Target'][1],'rx')
+            self.goalVisual=self.visualization.plot(self.leaders['Eigen']['Target'][0],self.leaders['Eigen']['Target'][1],'rx')
             self.plotQuiver(target.reshape((2,1)))
             if self.LazyQ:
                 titlePlot='Lazy PnP Controller'
@@ -125,13 +169,7 @@ class netwk():
             self.visualization.grid(False)
             # self.figure.legend(loc='upper left',title='Agents')
 
-
-
-
-
-
-
-        elif agentSpawn and self.agentNum==1:
+        elif agentSpawn==1 and self.agentNum==1:
             for name,pos in self.stateWname:
                 self.agents[name]=Agent(name, self.env, self,{'target': np.array([[9],[9]]), 'keepUpQ': False}, np.array(pos).reshape((2,1)))
             self.figure,self.visualization=plt.subplots()
@@ -149,7 +187,7 @@ class netwk():
                 ) for name in self.graph.names}
             for name in self.graph.names:
                 self.visualization.add_patch(self.verticesVisual[name])
-            self.goalVisual=self.visualization.plot(self.leaders['Zoe']['Target'][0],self.leaders['Zoe']['Target'][1],'rx')
+            self.goalVisual=self.visualization.plot(self.leaders['Eigen']['Target'][0],self.leaders['Eigen']['Target'][1],'rx')
             
         elif not agentSpawn:
             self.figure,self.visualization=plt.subplots()
@@ -183,8 +221,12 @@ class netwk():
                     navV=self.env.navfStar(state,goal)
                 elif self.worldType == 0:
                     navV=self.env.navfSphere(state,goal)
-                U[idx,idy]=navV[0,0]
-                V[idx,idy]=navV[1,0]
+                elif self.worldType==2:
+                    self.env.plotObstacles(self.visualization)
+                    navV=self.env.polyNav(state,goal)
+                print(navV)
+                U[idx,idy]=navV[0][0]
+                V[idx,idy]=navV[0][1]
 
         self.visualization.quiver(X, Y, U, V)
 
@@ -226,43 +268,10 @@ class netwk():
 
         return dydt.flatten()
 
-    # def pnpFlowMap(self,y,t):
-
-    #     vertex_indices=self.graph.vertex_indices
-    #     # print(vertex_indices)
-    #     xStack=y
-    #     print(y)
-    #     controlInput=np.zeros((2,1))
-    #     pnpSummand=np.zeros((2,1))
-    #     dydt=np.zeros((len(xStack),1))
-    #     for name in self.graph.names:
-    #         # myState=self.nameMap(name,xStack)
-    #         myState=xStack[2*vertex_indices[name]:(2*vertex_indices[name])+2]
-    #         nbrs=self.neighbors(name)
-    #         nbrIdx=np.zeros(len(nbrs),dtype=np.int64)
-    #         for i,val in enumerate(nbrs):        
-    #             nbrIdx[i]=2*vertex_indices[val]
-    #         if self.task.taskList[name]['keepUpQ']:
-    #             for nbr in nbrIdx:
-    #                 navvec=self.env.navfSphere(myState.reshape((2,1)),xStack[nbr:nbr+2].reshape((2,1)))
-    #                 relpos=xStack[nbr:nbr+2]-myState
-    #                 navxi=self.tension_func(la.norm(relpos))*(la.norm(relpos)**2)/(0.+(relpos.T@navvec))
-    #                 pnpSummand=pnpSummand+navxi*navvec
-    #                 # print(pnpSummand)
-    #         targ=self.task.taskList[name]['target']
-    #         if targ is None:
-    #             controlInput=controlInput+pnpSummand
-    #         else:                
-    #             controlInput=(controlInput+self.leaderGain*self.env.navfSphere(myState.reshape((2,1)),targ.reshape((2,1))))
-    #             # print(targ,myState)  
-    #         dydt[vertex_indices[name]:vertex_indices[name]+2]=np.array((controlInput))
-    #     return dydt.flatten(order="F")
-    
-
     def pnpFlowMapsolo(self,y,t):
         # controlInput=np.zeros((2,1))
         myState=np.array((y))
-        targ=np.array((self.task.taskList['Zoe']['target']))
+        targ=np.array((self.task.taskList['Eigen']['target']))
         navvec=self.env.navfSphere(myState.reshape((2,1)),targ.reshape((2,1)))
         dydt=self.leaderGain*navvec
         return dydt.flatten()
@@ -282,6 +291,9 @@ class netwk():
             for name,pos in self.stateWname:
                 # print(name,self.task.taskList[name])
                 self.agents[name]=Agent(name, self.env, self,self.task.taskList[name], np.array(pos).reshape((2,1)))
+        elif self.mode==2:
+            for name,pos in self.stateWname:
+                self.agents[name]=unicycleAgent(name, self.env, self,self.task.taskList[name], np.array(pos).reshape((4,1)))
         else:
             raise Exception("Invalid network generation mode")
         

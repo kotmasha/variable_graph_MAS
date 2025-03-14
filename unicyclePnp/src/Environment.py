@@ -6,7 +6,7 @@ import shapely
 import shapely.plotting
 import shapely.geometry as geom
 from shapely.ops import unary_union
-
+from shapely.geometry import Polygon, Point
 from Obstacle import shapelyObstacle
 # from scipy.optimize import minimize
 import qpsolvers
@@ -447,131 +447,177 @@ class starworldEnv(environment):
 class polygonEnv(environment):    
     def __init__(self,outerbounds,obstacleData):
         super().__init__(outerbounds,obstacleData)
-        obs=self.obstacleData['rectangle']
-        obsNum=int(len(obs)/4)
-        k=0        
-        for ii in range(obsNum):
-            faa=obs[k:k+4]
+        recObs=self.obstacleData['rectangle']
+        hexObs=self.obstacleData['hex']
+        recObsNum=int(len(recObs)/4)
+        hexObsNum=int(len(hexObs)/6)
+        rec_k=0
+        self.rectangles = []
+        self.hexagons = []        
+        for ii in range(recObsNum):
+            faa=recObs[rec_k:rec_k+4]
+            polygon = shapely.geometry.Polygon(faa)
             self.workspace=shapely.difference(self.workspace,shapely.geometry.polygon.orient(shapelyObstacle.spawnPoly(faa),1.0))
-            k += 4
-    
+            self.rectangles.append(polygon)
+            rec_k += 4
+        hex_k=0
+        for ii in range(hexObsNum):
+            faa = hexObs[hex_k:hex_k+6]
+            polygon = shapely.geometry.Polygon(faa)
+            self.workspace = shapely.ops.unary_union([self.workspace, polygon]).difference(polygon)
+            self.hexagons.append(polygon)
+            hex_k += 6
 
+    def plotObstacles(self, viz):
+        for rect in self.rectangles:
+            x, y = rect.exterior.xy
+            viz.plot(x, y, color='black')
+            viz.fill(x, y, color='red', alpha=0.99)
 
+        for hex in self.hexagons:
+            x, y = hex.exterior.xy
+            viz.plot(x, y, color='black')
+            viz.fill(x, y, color='red', alpha=0.99)
+    def polyNav(self, state, target):
+            """
+            Computes a navigation vector using artificial potential fields.
+            
+            Args:
+                state: Current position [x, y]
+                target: Target position [x, y]
+                
+            Returns:
+                vec: Navigation vector [dx, dy] with shape (1,2)
+            """
+            # Parameters
+            k_att = 1.0  # Attractive potential gain
+            k_rep = 10.0  # Repulsive potential gain
+            rho_0 = 5.0   # Influence distance of obstacles
+            min_dist = 0.2  # Minimum distance to consider (to avoid singularities)
+            max_attr_dist = 5.0  # Maximum distance for full attraction
+            
+            # Ensure state and target are 1D numpy arrays
+            state = np.array(state).flatten()
+            target = np.array(target).flatten()
+            
+            # Check dimensions
+            if state.size != 2 or target.size != 2:
+                print(f"Warning: Input dimensions unexpected. state shape: {state.shape}, target shape: {target.shape}")
+                # Ensure we have exactly 2 elements (x,y)
+                state = state[:2]
+                target = target[:2]
+            
+            # Attractive potential gradient (towards target)
+            dist_to_target = np.linalg.norm(target - state)
+            
+            if dist_to_target > max_attr_dist:
+                # If far from target, constant attraction
+                attr_vec = k_att * (target - state) / dist_to_target
+            else:
+                # If close to target, linear attraction
+                attr_vec = k_att * (target - state)
+            
+            # Repulsive potential gradient (away from obstacles)
+            rep_vec = np.zeros(2)
+            
+            # Process rectangles
+            for rect in self.rectangles:
+                # Find closest point on the rectangle
+                closest_point = np.array(shapely.ops.nearest_points(
+                    shapely.geometry.Point(state), rect)[1].coords[0])
+                
+                # Calculate distance to obstacle
+                dist_to_obs = max(min_dist, np.linalg.norm(state - closest_point))
+                
+                if dist_to_obs < rho_0:
+                    # Only apply repulsion within the influence distance
+                    factor = k_rep * (1/dist_to_obs - 1/rho_0) * (1/dist_to_obs**2)
+                    direction = (state - closest_point) / dist_to_obs
+                    rep_vec += factor * direction
+            
+            # Process hexagons
+            for hex in self.hexagons:
+                # Find closest point on the hexagon
+                closest_point = np.array(shapely.ops.nearest_points(
+                    shapely.geometry.Point(state), hex)[1].coords[0])
+                
+                # Calculate distance to obstacle
+                dist_to_obs = max(min_dist, np.linalg.norm(state - closest_point))
+                
+                if dist_to_obs < rho_0:
+                    # Only apply repulsion within the influence distance
+                    factor = k_rep * (1/dist_to_obs - 1/rho_0) * (1/dist_to_obs**2)
+                    direction = (state - closest_point) / dist_to_obs
+                    rep_vec += factor * direction
+            
+            # Combine attractive and repulsive vectors
+            nav_vec = attr_vec + rep_vec
+            
+            # Normalize if vector is too large
+            vec_magnitude = np.linalg.norm(nav_vec)
+            max_speed = 1.0
+            if vec_magnitude > max_speed:
+                nav_vec = (nav_vec / vec_magnitude) * max_speed
+            
+            # Make sure to return a (1,2) shape array as expected
+            return nav_vec.reshape(1, 2)
 
+    def ispolycw(self, xy):
+        return (self.polysignarea(xy) <= 0)
 
-
-    # def polysignarea(xy):
-    #     """
-    #     polysignarea(xy) determines the signed area of a non-self-intersecting 
-    #     polygon with vertices xy
+    def polydist(self, xy, p):
+        xy = xy.reshape(-1, 2)
+        p = p.reshape(-1, 2)
         
-    #     Input:
-    #         xy   : Vertex coordinated of a non-self-intersecting polygon
-    #             (Nx2 numpy.array)   
-    #     Output:
-    #         area : Signed area of the polygon
-    #     Usage:
-    #         import numpy as np
-    #         from cvxpolygeom import polysignarea 
-    #         xy = np.array([[0,0],[0,1],[1,0]])
-    #         area = polysignarea(xy)
-    #     """
-    #     xy = xy.reshape(-1,2) # Convert the input data into a 2D array 
-    #     numVertex = xy.shape[0] # Number of vertices
-    #     area = 0.0
-    #     for ck in range(0,numVertex):
-    #         cn = (ck + 1) % numVertex
-    #         area = area + np.cross(xy[ck],xy[cn])
-    #     area = 0.5*area
-
-    #     return area    
-    # def ispolycw(xy):
-    #     """
-    #     ispolycw(xy) determines if the vertices, xy, of a non-self-intersecting polygon 
-    #     are in clockwise order. Its computation is based on the signed are of the polygon. 
+        if xy.shape[0] == 0:
+            D = np.zeros(p.shape[0])
+            D.fill(np.inf)
+            C = np.zeros(p.shape)
+            C.fill(np.inf)
+            return D, C
         
-    #     Input:
-    #         xy : Vertex coordinated of a non-self-intersecting polygon
-    #             (Nx2 numpy.array)   
-    #     Output:
-    #         cw : a boolean variable which is True if the input polygon is in clockwise order 
-    #             (Boolean [True/False])
-    #     Usage:
-    #         import numpy as np
-    #         from cvxpolygeom import ispolycw 
-    #         xy = np.array([[0,0],[0,1],[1,0]])
-    #         cw = ispolycw(xy)
-    #     """
-    #     return (polysignarea(xy) <= 0)
-
-    # # \nRadius of\ncommunication=3m
-    # def polydist(xy, p):
-    #     """
-    #     polydist(xy, p) computes the distance between a set of points, p, and 
-    #     a polygon, xy, and return the closest points on the polygon boundary.   
-    #     Here, distance is defined as the minimum distance between an input 
-    #     point and any point on the polygon boundary.
-
-    #     Input:  
-    #         xy : Vertex coordinates of a polygon
-    #             (Nx2 numpy.array)
-    #         p  : Coordinates of a set of points
-    #             (Mx2 numpy.array)
-    #     Output: 
-    #         D  : Distance between points and the polygon 
-    #         C  : Coordinates of the closest points on the polygon to the input points
-    #     Usage:
-    #         import numpy as np
-    #         from cvxpolygeom import polydist 
-    #         import matplotlib.pyplot as plt
-    #         import matplotlib.patches as mpatches
-    #         n = 2
-    #         v = 7
-    #         p = 2 * np.random.rand(n,2) - 1
-    #         th = np.linspace(0, 2*np.pi, v)
-    #         xy = np.array([np.cos(th), np.sin(th)]).T
-    #         D, C = polydist(xy, p)
-    #         fig = plt.figure()
-    #         ax = fig.add_subplot(1,1,1)
-    #         ax.add_patch(mpatches.Polygon(xy, closed=True, alpha=0.5))
-    #         plt.plot(p[:,0],p[:,1],'ro')
-    #         plt.plot(C[:,0],C[:,1], 'r*')   
-    #         LX = np.array([p[:,0],C[:,0]])
-    #         LY = np.array([p[:,1],C[:,1]])  
-    #         plt.plot(LX, LY, 'r-')
-    #         ax.axis('equal') 
-    #         fig.show()   
-    #     """
-    #     # Convert input data into 2D arrays
-    #     xy = xy.reshape(-1,2)
-    #     p = p.reshape(-1,2)
+        orientsign = 1 - 2 * self.ispolycw(xy)
+        numPoint = p.shape[0]
         
-    #     # Distance to empty set is infinity
-    #     if (xy.shape[0] == 0):
-    #         D = np.zeros(p.shape[0])
-    #         D.fill(np.inf)
-    #         C = np.zeros(p.shape)
-    #         C.fill(np.inf) 
-    #         return D,C
+        xyPre = np.roll(xy, 1, axis=0)
+        dxy = xyPre - xy
+        dxyNorm = np.power(np.linalg.norm(dxy, axis=1)[:, np.newaxis], 2)
+        dxyNorm[(dxyNorm == 0)] = 1
         
-    #     orientsign = 1 - 2 * ispolycw(xy) # orientation of the polygon
-    #     numPoint = p.shape[0] # number of points
-    #     # Relative coordinates of polygon rims
-    #     xyPre = np.roll(xy,1, axis=0)
-    #     dxy = xyPre - xy
-    #     dxyNorm = np.power(np.linalg.norm(dxy,axis=1)[:,np.newaxis],2)
-    #     dxyNorm[(dxyNorm==0)] = 1
+        D = np.zeros(numPoint)
+        C = np.zeros([numPoint, 2])
+        for k in range(numPoint):
+            w = np.sum((p[k] - xy) * dxy, axis=1) / dxyNorm[:, 0]
+            w = np.fmax(np.fmin(w, 1), 0)
+            ctemp = (1 - w[:, np.newaxis]) * xy + w[:, np.newaxis] * xyPre
+            dtemp = np.linalg.norm(p[k] - ctemp, axis=1)
+            iMin = dtemp.argmin()
+            D[k] = dtemp[iMin]
+            C[k] = ctemp[iMin]
+        
+        return D, C
 
-    #     # Compute distances and closest points on the polygon boundary  
-    #     D = np.zeros(numPoint)
-    #     C = np.zeros([numPoint,2])
-    #     for k in range(numPoint):
-    #         w = np.sum((p[k] - xy)*dxy,axis=1)[:,np.newaxis]/dxyNorm
-    #         w = np.fmax(np.fmin(w,1),0)
-    #         ctemp = (1-w)*xy + w*xyPre
-    #         dtemp = np.linalg.norm(p[k] - ctemp, axis=1)
-    #         iMin = dtemp.argmin()
-    #         D[k] = dtemp[iMin]
-    #         C[k] = ctemp[iMin]  
-        
-    #     return D,C  
+    def attractive_potential(self, state, target, k_att=1.0):
+        return k_att * (np.array(target) - np.array(state))
+
+    def repulsive_potential(self, state, k_rep=100.0, repulsion_radius=5.0):
+        rep_force = np.zeros(2)
+        for ob in self.rectangles + self.hexagons:
+            ob_points = np.array(ob.exterior.coords)
+            D, C = self.polydist(ob_points, np.array([state]))
+            distance = D[0]
+            nearest_point = C[0]
+            if distance < repulsion_radius:
+                direction = (np.array(state) - np.array(nearest_point)).flatten()
+                rep_force += k_rep * (1.0 / distance - 1.0 / repulsion_radius) * (1.0 / distance**3) * direction
+        return rep_force
+
+    def compute_navigation_vector(self, state, target):
+        attr_force = self.attractive_potential(state, target)
+        rep_force = self.repulsive_potential(state)
+        total_force = attr_force + rep_force
+        norm = np.linalg.norm(total_force)
+        if norm > 0:
+            return total_force / norm  # Normalize to get a unit vector
+        else:
+            return total_force

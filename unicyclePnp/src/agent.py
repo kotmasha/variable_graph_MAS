@@ -8,10 +8,6 @@ import numpy as np
 import random
 from scipy.sparse.csgraph import depth_first_order
 import universal
-# import rclpy
-# from rclpy.node import Node
-# from geometry_msgs.msg import Twist, PoseStamped
-# from tf_transformations import quaternion_from_euler
 
 
 
@@ -64,17 +60,18 @@ class Agent():
             controlInput=controlInput+self.network.leaderGain*self.navf(targ) 
         # print(controlInput)
         return controlInput
-    def pnpUnicycle(self):
-        # positions=self.pollNeighborsPositions()
-        controlInput=np.zeros((2,1))
-        pnpSummand=np.zeros((2,1))
+
 
 class unicycleAgent(Agent):
-    def __init__(self,name,env,network,task,pos,yaw):
+    def __init__(self,name,env,network,task,pos):
         super().__init__(name,env,network,task,pos)
-        self.pose=yaw
+        self.pos=pos[:2,0].reshape((2,1))
+        self.pose=pos[-2:,0].reshape((2,1))
         self.skewJ = np.array([[0, -1],[1,0]])
-
+    def translatePos(self,vec):
+        self.pos=self.pos+vec
+    def translatePose(self,vec):
+        self.pose=self.pose+vec
     def navSphere(self,pos):
         return self.env.navfSphere(self.pos,pos)
     

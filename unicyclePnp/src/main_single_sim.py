@@ -50,6 +50,8 @@ stateWnameQ=int(data['Agents']['stateWnames'])
 agentTypes={}
 if stateWnameQ==1:
     stateWname=data['Agents']['NamesandPos']    
+elif stateWnameQ==2:
+    stateWname=data['Agents']['NamesandPosandPose']    
 else:
     stateWname=None
 
@@ -152,7 +154,7 @@ if solverType=='Euler':
     myPath=os.path.abspath(__file__)
     # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
     writerVideo = animation.FFMpegWriter(fps=60) 
-    ani.save('pnpMovieContractive.mp4', writer=writerVideo)
+    ani.save('unicycleMovie.mp4', writer=writerVideo)
 
 # elif solverType=='odeInt':
 
@@ -171,7 +173,7 @@ elif solverType == 'nsfPlots':
 
 elif solverType=="odeSolo":
     flowTime=np.linspace(0,simTime,simTime*60)
-    odeSol,output_dict=odeint(net.pnpFlowMapsolo,net.agents['Zoe'].pos.flatten(),flowTime,full_output=1)
+    odeSol,output_dict=odeint(net.pnpFlowMapsolo,net.agents['Eigen'].pos.flatten(),flowTime,full_output=1)
     # print(odeSol)
     plt.plot(odeSol[:,0],odeSol[:,1],'b--')
     plt.title('ODE Solution for Single Agent')
