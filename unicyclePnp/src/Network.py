@@ -1,4 +1,3 @@
-#/bin/bash python3
 from numpy import linalg as la
 import numpy as np
 import os,sys
@@ -15,12 +14,12 @@ from agentTask import agentask
 import inspect
 from itertools import combinations
 from datetime import datetime
-# from descartes import PolygonPatch
 from shapely.geometry import MultiPolygon, Polygon
 
 class netwk():
 
-    def __init__(self,netID,graphWithNames,env,leaders,pnpParameters,agentSpawn,simTime,worldType,stateWname=None):
+    def __init__(self,netID,graphWithNames,env,leaders,pnpParameters,agentSpawn,simTime,worldType,randomQ,stateWname=None):
+        #init mainly works on figure and setting animation visual objects 
         self.graph=graphWithNames
         self.agentNum=len(self.graph.names)
         self.env=env
@@ -36,13 +35,14 @@ class netwk():
         self.timestart=0.0
         self.agentSpawn=agentSpawn
         self.simTime=simTime
+        self.randomQ=randomQ
         self.worldType = worldType
-
+        self.dt=0.1
         
 
         if self.agentSpawn==1:
             self.mode=1
-        elif self.agentSpawn==2:
+        elif self.agentSpawn==2:#uni
             self.mode=2
         else:
             self.mode=0
@@ -62,45 +62,43 @@ class netwk():
             else:
                 self.rsafeStar=self.rsafe
                 self.omega=self.coopGain*((2+self.alpha)/(2*self.rcomm**(1+self.alpha)))*(self.m**(1+self.alpha)*(self.numEdges-self.m**2))/((self.m-1)**(2+self.alpha))
-        self.interiorPt=np.array([-5,-5])
+        # self.interiorPt=np.array([-5,-5])
         # if experiment requires agents
         
         #unicycle stuff here
         if agentSpawn==2:
-            self.task=agentask(self.graph,self.leaders)
+            self.task=agentask(self.graph,self.leaders,uniAgent=1)
+            if self.randomQ:
+                self.mode=3
+            
             self.populate(self.mode)
             self.y0=np.empty((0,1))
             # for name in self.graph.names:
             #     self.y0=np.vstack((self.y0,self.agents[name].pos))
             self.figure,self.visualization=plt.subplots()
-            # self.figure=self.visualization.get_figure()       
             self.workspacePatch=shapely.plotting.plot_polygon(self.env.workspace,add_points=False)
             self.visualization.add_patch(self.workspacePatch)
-            # self.verticesVisual={name:patches.Circle(
-            # uv.col2tup(self.agents[name].pos),
-            # radius=0.75,
-            # label=name,
-            # color='orange',
-            # animated=True,
-            # ) for name in self.graph.names}
-            radius=1
-            arrowLen=0.9
+            radius=0.9
+            self.arrowLen=0.8
+            self.verticesVisual={}
+            self.arrowVisual={}
             for name in self.graph.names:
                 pos = uv.col2tup(self.agents[name].pos)
                 pose=uv.col2tup(self.agents[name].pose)
                 circle = patches.Circle(pos, radius, color='orange', alpha=0.4)
                 self.visualization.add_patch(circle)
-                arrow_dx=pose[0]*arrowLen
-                arrow_dy=pose[1]*arrowLen
-                arrowPatch = patches.FancyArrow(pos[0],pos[1], arrow_dx, arrow_dy, color='blue', width=0.05, length_includes_head=True)
+                self.verticesVisual[name]=circle
+                arrow_dx=pose[0]*self.arrowLen
+                arrow_dy=pose[1]*self.arrowLen
+                arrowPatch = patches.FancyArrow(pos[0],pos[1], arrow_dx, arrow_dy, color='yellow', width=0.05, length_includes_head=True)
                 self.visualization.add_patch(arrowPatch)
+                self.arrowVisual[name]=arrowPatch
             target=np.array([self.leaders['Eigen']['Target'][0],self.leaders['Eigen']['Target'][1]])
             self.plotQuiver(target)
             self.goalVisual=self.visualization.plot(self.leaders['Eigen']['Target'][0],self.leaders['Eigen']['Target'][1],'rx')
             self.env.plotObstacles(self.visualization)
             self.visualization.grid(False)
-            plt.show()
-
+            self.env.distanceGradient(pos)
 
         if self.agentSpawn==1 and self.graph.edges!=None:
             self.updatedEdges = self.cleanEdge(self.graph.edges)
@@ -115,7 +113,6 @@ class netwk():
                 'timestep': []
             }
             # self.agentType=self.get_subclasses(agent,baseAgent)
-            self.dt=0.01
             self.notEdges = self.find_non_edges(self.graph.edges)
             self.task=agentask(self.graph,self.leaders)
             self.populate(self.mode)
@@ -199,14 +196,11 @@ class netwk():
             self.plotQuiver(target)
             sys.exit()
 
-
-
-
     def plotQuiver(self,target):
         [xmin, ymin, xmax, ymax] = shapely.bounds(self.env.workspace)
         
-        xArray=np.arange(xmin,xmax,0.7)
-        yArray=np.arange(ymin,ymax,0.7)
+        xArray=np.arange(xmin,xmax,0.9)
+        yArray=np.arange(ymin,ymax,0.9)
         X,Y=np.meshgrid(xArray,yArray)
         lenX=X.shape
         U=np.zeros((lenX))
@@ -224,16 +218,13 @@ class netwk():
                 elif self.worldType==2:
                     self.env.plotObstacles(self.visualization)
                     navV=self.env.polyNav(state,goal)
-                print(navV)
-                U[idx,idy]=navV[0][0]
-                V[idx,idy]=navV[0][1]
+                U[idx,idy]=navV[0]
+                V[idx,idy]=navV[1]
 
         self.visualization.quiver(X, Y, U, V)
 
         # add stuff to remove arrows inside obstacles
         # plt.show()
-
-
 
     def pnpFlowMap(self, y, t):
         vertex_indices = self.graph.vertex_indices
@@ -294,6 +285,11 @@ class netwk():
         elif self.mode==2:
             for name,pos in self.stateWname:
                 self.agents[name]=unicycleAgent(name, self.env, self,self.task.taskList[name], np.array(pos).reshape((4,1)))
+        elif self.mode==3:
+            for name in self.graph.names:
+                pos=self.env.generateRandPointPose()
+                #somehow ensure the pos,pose are joined into a 4,1 like mode==2
+                self.agents[name]=unicycleAgent(name, self.env, self,self.task.taskList[name], np.array(pos))
         else:
             raise Exception("Invalid network generation mode")
         
@@ -333,32 +329,44 @@ class netwk():
  
     def pnpUpdate(self):
         vecs={}
+        angs={}
         for name in self.graph.names:
-            vecs[name]=self.agents[name].pnp()   
-
+            vecs[name]=self.agents[name].forward_control_input()
+            angs[name]=self.agents[name].angular_control_input()
+        # this is x_new=time*x_dot??
         for name in self.graph.names:
+            print('vec name')
+            print(vecs[name])
             self.agents[name].translatePos(self.dt*vecs[name])
-    
+            self.agents[name].translatePose(self.dt*angs[name])
     def updateVisualization(self):
         # updates the visualization data for vertices and edges
         self.timestart = round(self.timestart+self.dt,2)
         
         for name in self.graph.names:
-            self.verticesVisual[name].set(center=uv.col2tup(self.agents[name].pos))
+            print(self.agents[name].pos)
+            pos = uv.col2tup(self.agents[name].pos)
+            pose=uv.col2tup(self.agents[name].pose)
+            self.verticesVisual[name].set(center=(pos[0],pos[1]))
+
+            arrow_dx=float(pose[0])*self.arrowLen
+            arrow_dy=float(pose[1])*self.arrowLen
+            self.arrowVisual[name].remove()
+            arrowPatch = patches.FancyArrow(pos[0],pos[1], arrow_dx, arrow_dy, color='yellow', width=0.05, length_includes_head=True)
+            self.visualization.add_patch(arrowPatch)
+            self.arrowVisual[name] = arrowPatch
+            # self.arrowVisual[name].set(pos[0],pos[1], arrow_dx, arrow_dy,width=None,head_width=None,head_length=None)
 
         if self.graph.edges != None:    
             for edge in self.graph.edges: 
                 self.edgesVisual[edge].set_xy(np.asarray(np.hstack((self.agents[edge[0]].pos,self.agents[edge[1]].pos)).T))
-        for edge in self.updatedEdges:
-            dis = self.edgeDistance(self.agents[edge[0]].pos,self.agents[edge[1]].pos)
-            print(dis)
-            self.update_edge_lengths(edge,dis,self.timestart)
-        for nedge in self.notEdges:
-            ndis = self.edgeDistance(self.agents[nedge[0]].pos,self.agents[nedge[1]].pos)
-            self.update_nedge_lengths(nedge,ndis,self.timestart)
+            for edge in self.updatedEdges:
+                dis = self.edgeDistance(self.agents[edge[0]].pos,self.agents[edge[1]].pos)
+                self.update_edge_lengths(edge,dis,self.timestart)
+            for nedge in self.notEdges:
+                ndis = self.edgeDistance(self.agents[nedge[0]].pos,self.agents[nedge[1]].pos)
+                self.update_nedge_lengths(nedge,ndis,self.timestart)
         if self.timestart>self.simTime:
-            self.plotEdgeLenghts()
-            # self.plotNonEdgeLenghts()
             current_time = datetime.now()
             print(current_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
             sys.exit()

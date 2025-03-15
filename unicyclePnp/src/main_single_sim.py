@@ -46,6 +46,8 @@ upper=int(data['Wksp_bnds']['upper'][0][0])
 lower=int(data['Wksp_bnds']['lower'][0][0])
 names=data['Agents']['Names']
 agentSpawn=data['agentSpawn']
+edgesQ=data['Agents']['edgesQ']
+ramdomQ=data['Agents']['randomQ']
 stateWnameQ=int(data['Agents']['stateWnames'])
 agentTypes={}
 if stateWnameQ==1:
@@ -57,7 +59,7 @@ else:
 
 pnpParameters=data['pnpParameters']
 # each edge is represented as a tuple of names
-if len(names) > 1:
+if edgesQ:
     edges=[tuple(item) for item in data['Agents']['tree_mat_names']]
 else:
     edges=None
@@ -74,7 +76,7 @@ elif worldType==2:
     env=polygonEnv(outerbounds,obstacleData)
 
 graph=graph_w_names(names,edges)
-net=netwk(netID,graph,env,leaders,pnpParameters,agentSpawn,simTime,worldType,stateWname)
+net=netwk(netID,graph,env,leaders,pnpParameters,agentSpawn,simTime,worldType,stateWname,ramdomQ)
 def updateAni(content):
     # update agent positions
     # content.dummyUpdate()
@@ -137,11 +139,6 @@ def plot_multi_agent_trajectories(net, odeSol, flowTime):
     ax.legend(handles=legend_elements, loc='lower right',  ncol=1,fontsize=18)
 if solverType=='Euler':
     flowTime=np.linspace(0,simTime,simTime*60)
-
-    # for timestep in flowTime:
-    #     net.pnpUpdate()
-    #     net.updateVisualization()
-
     ani=animation.FuncAnimation(
         fig=net.figure,
         func=updateAni,
@@ -151,6 +148,7 @@ if solverType=='Euler':
         # cache_frame_data=False,
         save_count=Nframes,
     )
+    print('hi')
     myPath=os.path.abspath(__file__)
     # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
     writerVideo = animation.FFMpegWriter(fps=60) 

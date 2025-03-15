@@ -58,12 +58,28 @@ class sphereworldEnv(environment):
             self.workspace=shapely.difference(self.workspace,shapely.geometry.polygon.orient(shapelyObstacle.spawnSphere(center,radius),1.0))
         self.workspaceFinal=self.workspace
         # shapely.plotting.plot_polygon(self.workspace)
+    def generateRandPointPose(self):
+        min_x, min_y, max_x, max_y = self.outerbounds.bounds
+        
+        while True:
+            x = np.random.uniform(min_x, max_x)
+            y = np.random.uniform(min_y, max_y)
+            point = shapely.geometry.Point(x, y)
+            
+            inside_obstacle = any(
+                point.distance(shapely.geometry.Point(center)) < radius
+                for center, radius in zip(self.obstacleCenters, self.obstacleRadii)
+            )
+            
+            if not inside_obstacle and self.workspace.contains(point):
+                return np.array([x, y, np.cos(theta := np.random.uniform(0, 2 * np.pi)), np.sin(theta)]).reshape((4,1))
 
     def navfSphere(self,state,goal):
+        goal=goal.reshape((2,1))
+        state=state.reshape((2,1))
         self.A=np.vstack((self.workspaceMatrix,self.safetyMatrix(state)))
         self.bb=np.vstack((self.workspaceCoefficients-(self.workspaceMatrix@goal).reshape(len(self.workspaceMatrix),1),self.safetyCoefficients(goal,state)))
         result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='piqp')
-        print(result)
         if result is None:
             result = np.zeros((2,1))
         return goal+result.reshape((2,1))-state
@@ -118,7 +134,49 @@ class sphereworldEnv(environment):
             viz.fill(x, y, color='red',alpha=0.99 )
             if i ==0:
                 viz.text(circ.centroid.x,circ.centroid.y,"Obstacles",fontsize=20,color='white',ha='center',va='center')
-
+    def distanceGradient(self, state):
+        state = np.asarray(state).reshape(2, 1)
+        point = shapely.Point(float(state[0]), float(state[1]))
+        
+        min_dist = float('inf')
+        gradient = np.zeros((2, 1))
+        
+        for i in range(self.obstacleNum):
+            obstacle_center = self.obstacleCenters[i]
+            radius = self.obstacleRadii[i]
+            obstacle = shapely.Point(obstacle_center).buffer(radius)
+            
+            dist_to_obstacle = point.distance(obstacle)
+            if shapely.contains(obstacle, point):
+                dist_to_obstacle = -dist_to_obstacle
+                
+            vec_to_state = state - obstacle_center.reshape((2, 1))
+            dist_to_center = np.linalg.norm(vec_to_state)
+            
+            if abs(dist_to_obstacle) < min_dist:
+                min_dist = abs(dist_to_obstacle)
+                gradient = vec_to_state / max(dist_to_center, 1e-10)
+        
+        if not shapely.contains(self.workspace, point):
+            nearest_point = shapely.ops.nearest_points(point, self.workspace)[1]
+            boundary_vec = np.array([[nearest_point.x - point.x], [nearest_point.y - point.y]])
+            dist_to_boundary = np.linalg.norm(boundary_vec)
+            
+            if dist_to_boundary < min_dist:
+                min_dist = dist_to_boundary
+                gradient = boundary_vec / max(dist_to_boundary, 1e-10)
+        else:
+            boundary = shapely.boundary(self.workspace)
+            nearest_point = shapely.ops.nearest_points(point, boundary)[1]
+            boundary_vec = np.array([[point.x - nearest_point.x], [point.y - nearest_point.y]])
+            dist_to_boundary = np.linalg.norm(boundary_vec)
+            
+            if dist_to_boundary < min_dist:
+                min_dist = dist_to_boundary
+                gradient = boundary_vec / max(dist_to_boundary, 1e-10)
+        
+        norm = np.linalg.norm(gradient)
+        return gradient / max(norm, 1e-10)
 class starworldEnv(environment):
     def __init__(self,outerbounds,obstacleData):
         super().__init__(outerbounds,obstacleData)
@@ -493,7 +551,7 @@ class polygonEnv(environment):
             k_att = 1.0  # Attractive potential gain
             k_rep = 10.0  # Repulsive potential gain
             rho_0 = 5.0   # Influence distance of obstacles
-            min_dist = 0.2  # Minimum distance to consider (to avoid singularities)
+            min_dist = 0.3  # Minimum distance to consider (to avoid singularities)
             max_attr_dist = 5.0  # Maximum distance for full attraction
             
             # Ensure state and target are 1D numpy arrays
@@ -565,6 +623,78 @@ class polygonEnv(environment):
     def ispolycw(self, xy):
         return (self.polysignarea(xy) <= 0)
 
+    def delta_gradient(self, q):
+        """
+        Compute the gradient (derivative) of delta with respect to q.
+        
+        Parameters:
+        q : array-like
+            The position to evaluate (2D point)
+            
+        Returns:
+        numpy.ndarray : The gradient vector of delta at point q
+        """        
+        # Convert q to a Point object
+        if not isinstance(q, shapely.geometry.Point):
+            q_point = shapely.geometry.Point(q)
+        else:
+            q_point = q
+        
+        q_array = np.array([q_point.x, q_point.y])
+        
+        # Check if the point is outside the workspace
+        if not self.workspace.contains(q_point):
+            return np.zeros(2)  # Return zero gradient if outside workspace
+        
+        # Initialize with large distance
+        min_distance = float('inf')
+        nearest_point = None
+        
+        # Check workspace boundary
+        workspace_boundary = self.workspace.boundary
+        nearest_workspace_point = shapely.ops.nearest_points(q_point, workspace_boundary)[1]
+        workspace_distance = q_point.distance(workspace_boundary)
+        
+        if workspace_distance < min_distance:
+            min_distance = workspace_distance
+            nearest_point = nearest_workspace_point
+        
+        # Check distance to each rectangle
+        for rect in self.rectangles:
+            rect_boundary = rect.boundary
+            rect_nearest_point = shapely.ops.nearest_points(q_point, rect_boundary)[1]
+            rect_distance = q_point.distance(rect_boundary)
+            
+            if rect_distance < min_distance:
+                min_distance = rect_distance
+                nearest_point = rect_nearest_point
+        
+        # Check distance to each hexagon
+        for hex_poly in self.hexagons:
+            hex_boundary = hex_poly.boundary
+            hex_nearest_point = shapely.ops.nearest_points(q_point, hex_boundary)[1]
+            hex_distance = q_point.distance(hex_boundary)
+            
+            if hex_distance < min_distance:
+                min_distance = hex_distance
+                nearest_point = hex_nearest_point
+        
+        # Compute gradient - unit vector pointing from q to the nearest point
+        if nearest_point is not None:
+            nearest_point_array = np.array([nearest_point.x, nearest_point.y])
+            direction = nearest_point_array - q_array
+            
+            # Normalize to get unit vector
+            norm = np.linalg.norm(direction)
+            if norm > 0:
+                gradient = direction / norm
+            else:
+                gradient = np.zeros(2)
+        else:
+            gradient = np.zeros(2)
+        
+        return gradient
+    
     def polydist(self, xy, p):
         xy = xy.reshape(-1, 2)
         p = p.reshape(-1, 2)
