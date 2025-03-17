@@ -131,52 +131,49 @@ class sphereworldEnv(environment):
             circ = oc.buffer(oR)
             x, y = circ.exterior.xy
             viz.plot(x, y, color='black')
-            viz.fill(x, y, color='red',alpha=0.99 )
+            viz.fill(x, y, color='red',alpha=0.92)
             if i ==0:
-                viz.text(circ.centroid.x,circ.centroid.y,"Obstacles",fontsize=20,color='white',ha='center',va='center')
-    def distanceGradient(self, state):
-        state = np.asarray(state).reshape(2, 1)
-        point = shapely.Point(float(state[0]), float(state[1]))
-        
-        min_dist = float('inf')
-        gradient = np.zeros((2, 1))
-        
+                viz.text(circ.centroid.x,circ.centroid.y,"Obstacles",fontsize=15,color='white',ha='center',va='center')
+    def nearestUnsafePoint(self, state):
+        x, y = state.flatten()
+        point = shapely.geometry.Point(x, y)
+        if not self.workspace.contains(point):
+            print("Error: An agent has escaped into the real world. Please beware!")
+            return None
+        # Find nearest point on the workspace boundary
+        workspace_boundary = self.workspace.exterior
+        workspace_dist = workspace_boundary.project(point)
+        nearest_workspace_point = workspace_boundary.interpolate(workspace_dist)
+        nearest_obstacle_point = None
+        min_obstacle_dist = float('inf')
         for i in range(self.obstacleNum):
-            obstacle_center = self.obstacleCenters[i]
-            radius = self.obstacleRadii[i]
-            obstacle = shapely.Point(obstacle_center).buffer(radius)
-            
-            dist_to_obstacle = point.distance(obstacle)
-            if shapely.contains(obstacle, point):
-                dist_to_obstacle = -dist_to_obstacle
-                
-            vec_to_state = state - obstacle_center.reshape((2, 1))
-            dist_to_center = np.linalg.norm(vec_to_state)
-            
-            if abs(dist_to_obstacle) < min_dist:
-                min_dist = abs(dist_to_obstacle)
-                gradient = vec_to_state / max(dist_to_center, 1e-10)
-        
-        if not shapely.contains(self.workspace, point):
-            nearest_point = shapely.ops.nearest_points(point, self.workspace)[1]
-            boundary_vec = np.array([[nearest_point.x - point.x], [nearest_point.y - point.y]])
-            dist_to_boundary = np.linalg.norm(boundary_vec)
-            
-            if dist_to_boundary < min_dist:
-                min_dist = dist_to_boundary
-                gradient = boundary_vec / max(dist_to_boundary, 1e-10)
+            obs_center = np.array(self.obstacleCenters[i])  # Convert center to NumPy array
+            obs_radius = self.obstacleRadii[i]
+            # Compute direction from obstacle center to point
+            direction = np.array([x, y]) - obs_center
+            norm = np.linalg.norm(direction)
+            if norm == 0:
+                direction_unit = np.array([1, 0])  
+                sys.exit()
+            else:
+                direction_unit = direction / norm
+            # Compute nearest point on obstacle boundary
+            obstacle_boundary_point = obs_center + obs_radius * direction_unit
+            obstacle_boundary_point = shapely.geometry.Point(obstacle_boundary_point)
+            # Compute distance
+            obstacle_dist = point.distance(obstacle_boundary_point)
+            if obstacle_dist < min_obstacle_dist:
+                min_obstacle_dist = obstacle_dist
+                nearest_obstacle_point = obstacle_boundary_point
+        # Ensure nearest_obstacle_point is not None
+        if nearest_obstacle_point is None:
+            nearest_obstacle_point = nearest_workspace_point
+        # Determine the closest unsafe point
+        if point.distance(nearest_workspace_point) < min_obstacle_dist:
+            return np.array([[nearest_workspace_point.x], [nearest_workspace_point.y]])
         else:
-            boundary = shapely.boundary(self.workspace)
-            nearest_point = shapely.ops.nearest_points(point, boundary)[1]
-            boundary_vec = np.array([[point.x - nearest_point.x], [point.y - nearest_point.y]])
-            dist_to_boundary = np.linalg.norm(boundary_vec)
-            
-            if dist_to_boundary < min_dist:
-                min_dist = dist_to_boundary
-                gradient = boundary_vec / max(dist_to_boundary, 1e-10)
+            return np.array([[nearest_obstacle_point.x], [nearest_obstacle_point.y]])
         
-        norm = np.linalg.norm(gradient)
-        return gradient / max(norm, 1e-10)
 class starworldEnv(environment):
     def __init__(self,outerbounds,obstacleData):
         super().__init__(outerbounds,obstacleData)

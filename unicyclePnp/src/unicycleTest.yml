@@ -6,16 +6,17 @@ Wksp_bnds:
     - [0]
 solverType: 'Euler' #nsfPlots for nsf plots
 Obstacles:
-  worldType: 0 #0 is sphere world, 1 is star shaped, 2 is polygonal 
+  worldType: 0                                   #0 is sphere world, 1 is star shaped, 2 is polygonal 
   sphereWorld:
-    obsNum: 5
+    obsNum: 2
     obsCenter:
-      - [5, 20]
+      - [12, 20]
       - [20, 5]
-      - [25, 22]
-      - [15, 27]
-      - [10, 8]
-    obsRadii: [4.5, 3, 3, 2, 2]
+      # - [25, 22]
+      # - [15, 27]
+      # - [10, 8]
+    # obsRadii: [4.5, 3, 3, 2, 2]
+    obsRadii: [5,3]
     
   starWorld:
     obsNum: 3
@@ -55,54 +56,54 @@ Obstacles:
     - [12, 15]
 pnpParameters:
   Lazy: 1
-  coopGain: 9.35   # mu///omega for lazy
-  leaderGain: 0.15 #(this is gamma)
+  coopGain: 9.35                                 # mu///omega for lazy
+  leaderGain: 0.15                               #(this is gamma)
   alpha: 1.01
   rsafe: 0.4 
   rcomm: 3
 
 netID: 'AutonomyPark'
-agentSpawn: 2 #1 for holonomic and 2 for unicycle
+agentSpawn: 2                                    #1 for holonomic and 2 for unicycle
 
 Agents:
   edgesQ: 0
-  randomQ: 1
-  stateWnames: 2 # 2 for puck with arrow
+  randomQ: 0
+  stateWnames: 2                                 #2 for puck with arrow
   NamesandPosandPose:
-    - ["Eigen", [15, 5,1,1]] 
+    - ["Eigen", [5,5,0.7,0.7]] 
 
   Names:
     - Eigen
-    - Iker
-    - Emmett
-    - Henrik
-    - Anders
-    - Leif
-    - Wilder
-    - Lucian
-    - Octavian
-    - Astrid
-    - Ambrose
-    - Alaric
-    - Cedric
-    - Evander
-    - Florian
-    - Magnus
-    - Soren
-    - Thaddeus
-    - Caspian
-    - Dorian
-    - Eamon
-    - Ignatius
-    - Larkin
-    - Orion
-    - Peregrine
-    - Quentin
-    - Silas
-    - Tobias
-    - Ulric
-    - Valor
-    - Zephyr
+    # - Iker
+    # - Emmett
+    # - Henrik
+    # - Anders
+    # - Leif
+    # - Wilder
+    # - Lucian
+    # - Octavian
+    # - Astrid
+    # - Ambrose
+    # - Alaric
+    # - Cedric
+    # - Evander
+    # - Florian
+    # - Magnus
+    # - Soren
+    # - Thaddeus
+    # - Caspian
+    # - Dorian
+    # - Eamon
+    # - Ignatius
+    # - Larkin
+    # - Orion
+    # - Peregrine
+    # - Quentin
+    # - Silas
+    # - Tobias
+    # - Ulric
+    # - Valor
+    # - Zephyr
 
   AgentType:
     - ['Eigen',"polyNav"]

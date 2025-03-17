@@ -79,72 +79,65 @@ class unicycleAgent(Agent):
         self.skewJ = np.array([[0, -1],[1,0]])
         self.target=self.task['target'].reshape((2,1))
     def translatePos(self,vec):
-        self.pos=self.pos-vec
+        self.pos=self.pos+vec
         # print(self.pos)
     def translatePose(self,vec):
-        self.pose=vec
+        self.pose=self.pose+vec
 
-    # def navf(self,pos):
-    #     return self.env.polyNav(self.pos,pos)
     def navf(self,pos):
         return self.env.navfSphere(self.pos,pos)
 
     def alpha1(self,pos,pose):
-        
-        num=pose.T@self.navf(self.target)*pose.T@self.env.distanceGradient(pos)
+        num=pose.T@self.navf(self.target)*pose.T@self.nablaQDel(pos)
         return num
     
     def alpha2(self,pos,pose):
-        nub=(self.skewJ@pose).T@self.navf(self.target)*pose.T@self.env.distanceGradient(pos)
+        nub=(self.skewJ@pose).T@self.navf(self.target)*pose.T@self.nablaQDel(pos)
         return nub
-    
+    def nablaQDel(self, pos):
+        delta = self.env.nearestUnsafePoint(pos)
+        if delta is None:
+            return None
+        else:
+            difference = pos - delta
+            print(f"my pos, nearest point and difference: {self.pos,delta,difference}")
+            norm = np.linalg.norm(difference)
+            if norm != 0:  
+                normalized_difference = difference / norm
+            else:
+                print('wrong somewhere')
+                normalized_difference = difference  
+            return normalized_difference
     def forward_control_input(self):
-        v=self.alpha1(self.pos,self.pose)*self.pose.T@self.navf(self.target)+self.alpha2(self.pos,self.pose)*(self.skewJ@self.pose).T@self.navf(self.target)
-        return v*self.pose
+        # print(f"alpha1(self.pos, self.pose): {self.alpha1(self.pos, self.pose)}")
+        # print(f"self.pose.T @ self.navf(self.target): {self.pose.T @ self.navf(self.target)}")
+        # print(f"alpha2(self.pos, self.pose): {self.alpha2(self.pos, self.pose)}")
+        # print(f"(self.skewJ @ self.pose).T @ self.navf(self.target): {(self.skewJ @ self.pose).T @ self.navf(self.target)}")
+        
+        v = self.alpha1(self.pos, self.pose) * self.pose.T @ self.navf(self.target)
+        # + self.alpha2(self.pos, self.pose) * (self.skewJ @ self.pose).T @ self.navf(self.target)
+        # print(f"v (before scaling): {v}")
+        
+        result = v * self.pose
+        # print(f"result (after scaling): {result}")
+        
+        return result
 
     def angular_control_input(self):
-        w=-self.alpha2(self.pos, self.pose)*self.pose.T@self.navf(self.target)+self.alpha1(self.pos,self.pose)*(self.skewJ@self.pose)
-        return w*(self.skewJ@self.pose)
+        # print(f"alpha2(self.pos, self.pose): {self.alpha2(self.pos, self.pose)}")
+        # print(f"self.pose.T @ self.navf(self.target): {self.pose.T @ self.navf(self.target)}")
+        # print(f"alpha1(self.pos, self.pose): {self.alpha1(self.pos, self.pose)}")
+        # print(f"(self.skewJ @ self.pose): {(self.skewJ @ self.pose)}")
+        
+        w = self.alpha2(self.pos, self.pose) * (self.skewJ @ self.pose).T @ self.navf(self.target) 
+        # + self.alpha1(self.pos, self.pose) * (self.skewJ @ self.pose)
+        # print(f"w (before scaling): {w}")
+        
+        result = w * (self.skewJ @ self.pose)
+        # print(f"result (after scaling): {result}")
+        
+        return result
     
-    def unitPose(self,pose):
-        """
-        Convert a 2D column vector (numpy array with shape (n,1)) to a unit vector.
-        
-        Args:
-            pose: A numpy array of shape (n,1) representing a column vector
-            
-        Returns:
-            A numpy array of the same shape, normalized to unit length
-        """
-        # Ensure pose is a numpy array
-        if not isinstance(pose, np.ndarray):
-            pose = np.array(pose)
-        
-        # Handle different shapes
-        if pose.ndim == 2:
-            # If it's a 2D array (column vector), flatten it for calculations
-            pose_flat = pose.flatten()
-        else:
-            # If it's already 1D, use it directly
-            pose_flat = pose
-        
-        # Calculate the vector's magnitude (length) using Pythagorean theorem
-        magnitude = math.sqrt(sum(x**2 for x in pose_flat))
-        
-        # Check for zero vector to avoid division by zero
-        if magnitude == 0:
-            return np.zeros_like(pose)  # Return zero vector of same shape
-        
-        # Normalize the vector
-        if pose.ndim == 2:
-            # For 2D array, return the same shape
-            unit_vector = np.array([[x / magnitude] for x in pose_flat]).reshape(pose.shape)
-        else:
-            # For 1D array, return 1D
-            unit_vector = np.array([x / magnitude for x in pose_flat])
-        
-        return unit_vector
-
 
 
 

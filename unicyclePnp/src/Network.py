@@ -37,7 +37,7 @@ class netwk():
         self.simTime=simTime
         self.randomQ=randomQ
         self.worldType = worldType
-        self.dt=0.1
+        self.dt=0.0001
         
 
         if self.agentSpawn==1:
@@ -70,7 +70,8 @@ class netwk():
             self.task=agentask(self.graph,self.leaders,uniAgent=1)
             if self.randomQ:
                 self.mode=3
-            
+            else:
+                self.mode==2
             self.populate(self.mode)
             self.y0=np.empty((0,1))
             # for name in self.graph.names:
@@ -90,15 +91,16 @@ class netwk():
                 self.verticesVisual[name]=circle
                 arrow_dx=pose[0]*self.arrowLen
                 arrow_dy=pose[1]*self.arrowLen
-                arrowPatch = patches.FancyArrow(pos[0],pos[1], arrow_dx, arrow_dy, color='yellow', width=0.05, length_includes_head=True)
+                arrowPatch = patches.FancyArrow(pos[0],pos[1], arrow_dx, arrow_dy, color='yellow', width=0.05)
                 self.visualization.add_patch(arrowPatch)
                 self.arrowVisual[name]=arrowPatch
             target=np.array([self.leaders['Eigen']['Target'][0],self.leaders['Eigen']['Target'][1]])
-            self.plotQuiver(target)
+            # self.plotQuiver(target)
+            self.visualization.grid(False)
             self.goalVisual=self.visualization.plot(self.leaders['Eigen']['Target'][0],self.leaders['Eigen']['Target'][1],'rx')
             self.env.plotObstacles(self.visualization)
-            self.visualization.grid(False)
-            self.env.distanceGradient(pos)
+            self.plotNablaDelta()
+            
 
         if self.agentSpawn==1 and self.graph.edges!=None:
             self.updatedEdges = self.cleanEdge(self.graph.edges)
@@ -199,8 +201,8 @@ class netwk():
     def plotQuiver(self,target):
         [xmin, ymin, xmax, ymax] = shapely.bounds(self.env.workspace)
         
-        xArray=np.arange(xmin,xmax,0.9)
-        yArray=np.arange(ymin,ymax,0.9)
+        xArray=np.arange(xmin,xmax,0.7)
+        yArray=np.arange(ymin,ymax,0.7)
         X,Y=np.meshgrid(xArray,yArray)
         lenX=X.shape
         U=np.zeros((lenX))
@@ -222,9 +224,99 @@ class netwk():
                 V[idx,idy]=navV[1]
 
         self.visualization.quiver(X, Y, U, V)
-
+        # print(self.env.nearestUnsafePoint(self.agents['Eigen'].pos))
         # add stuff to remove arrows inside obstacles
         # plt.show()
+   
+    def plotNablaDelta(self):
+        [xmin, ymin, xmax, ymax] = shapely.bounds(self.env.workspace)
+        
+        # Use a larger step size to reduce arrow density
+        xArray = np.arange(xmin, xmax, 1.0)
+        yArray = np.arange(ymin, ymax, 1.0)
+        X, Y = np.meshgrid(xArray, yArray)
+        
+        lenX = X.shape
+        U = np.zeros(lenX)
+        V = np.zeros(lenX)
+        
+        # Create a mask for points inside obstacles
+        mask = np.ones(lenX, dtype=bool)
+        
+        maxX = lenX[0]
+        for idx in range(maxX):
+            for idy in range(maxX):
+                state = np.array([X[idx, idy], Y[idx, idy]]).reshape((2,1))
+                
+                # Check if point is inside any obstacle
+                point = shapely.geometry.Point(X[idx, idy], Y[idx, idy])
+                is_inside_obstacle = False
+                for i in range(self.env.obstacleNum):
+                    center = self.env.obstacleCenters[i]
+                    radius = self.env.obstacleRadii[i]
+                    if point.distance(shapely.geometry.Point(center)) <= radius:
+                        is_inside_obstacle = True
+                        mask[idx, idy] = False
+                        break
+                
+                if is_inside_obstacle:
+                    U[idx, idy] = np.nan
+                    V[idx, idy] = np.nan
+                    continue
+                    
+                gradV = self.agents['Eigen'].nablaQDel(state)
+                if gradV is None:
+                    U[idx, idy] = np.nan  # Use np.nan instead of None
+                    V[idx, idy] = np.nan
+                else:
+                    U[idx, idy] = gradV[0]
+                    V[idx, idy] = gradV[1]
+        
+        # Calculate vector magnitudes for coloring
+        magnitude = np.sqrt(U**2 + V**2)
+        
+        # Clear previous plots
+        # self.visualization.clear()
+        
+        # Plot the vector field with improved visibility
+        self.visualization.quiver(X, Y, U, V)               # Slight transparency
+        
+        # Add a colorbar to show magnitude scale
+        # cbar = self.visualization.figure.colorbar(self.visualization.quiver(X, Y, U, V, magnitude, visible=False))
+        # cbar.set_label('Gradient Magnitude')
+        
+        # Add streamlines for better flow visualization
+        # self.visualization.streamplot(X, Y, U, V, 
+        #                             density=1.0,          # Adjust density as needed 
+        #                             color='white',        # Light color that contrasts with background
+        #                             linewidth=0.8,        # Thin lines
+        #                             arrowsize=0.8)        # Small arrows
+        
+        # Draw obstacles more clearly
+        for i in range(self.env.obstacleNum):
+            center = self.env.obstacleCenters[i]
+            radius = self.env.obstacleRadii[i]
+            circle = plt.Circle(center, radius, fill=True, color='white', edgecolor='black', alpha=0.8)
+            self.visualization.add_patch(circle)
+        
+        # Draw workspace boundary
+        workspace_boundary = self.env.workspace.exterior.coords
+        x_coords, y_coords = zip(*workspace_boundary)
+        self.visualization.plot(x_coords, y_coords, 'k-', linewidth=2)
+        
+        # Set plot properties
+        self.visualization.set_aspect('equal')
+        self.visualization.grid(False)
+        self.visualization.set_title('Vector Field: Gradient to Nearest Unsafe Point')
+        self.visualization.set_xlabel('X Position')
+        self.visualization.set_ylabel('Y Position')
+        
+        # Save figure with higher resolution
+        self.figure.tight_layout()
+        self.figure.savefig("nablaDelta.svg", format="svg", dpi=300, bbox_inches='tight')
+        
+        # Show the plot
+        plt.show()
 
     def pnpFlowMap(self, y, t):
         vertex_indices = self.graph.vertex_indices
@@ -335,8 +427,8 @@ class netwk():
             angs[name]=self.agents[name].angular_control_input()
         # this is x_new=time*x_dot??
         for name in self.graph.names:
-            print('vec name')
-            print(vecs[name])
+            # print('vec name')
+            # print(vecs[name])
             self.agents[name].translatePos(self.dt*vecs[name])
             self.agents[name].translatePose(self.dt*angs[name])
     def updateVisualization(self):
@@ -344,13 +436,14 @@ class netwk():
         self.timestart = round(self.timestart+self.dt,2)
         
         for name in self.graph.names:
-            print(self.agents[name].pos)
+            # print(self.agents[name].pos)
             pos = uv.col2tup(self.agents[name].pos)
             pose=uv.col2tup(self.agents[name].pose)
             self.verticesVisual[name].set(center=(pos[0],pos[1]))
 
             arrow_dx=float(pose[0])*self.arrowLen
             arrow_dy=float(pose[1])*self.arrowLen
+            # self.arrowVisual[name].set(x=pos[0], y=pos[1], dx=arrow_dx, dy=arrow_dy)
             self.arrowVisual[name].remove()
             arrowPatch = patches.FancyArrow(pos[0],pos[1], arrow_dx, arrow_dy, color='yellow', width=0.05, length_includes_head=True)
             self.visualization.add_patch(arrowPatch)

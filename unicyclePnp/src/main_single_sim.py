@@ -76,7 +76,7 @@ elif worldType==2:
     env=polygonEnv(outerbounds,obstacleData)
 
 graph=graph_w_names(names,edges)
-net=netwk(netID,graph,env,leaders,pnpParameters,agentSpawn,simTime,worldType,stateWname,ramdomQ)
+net=netwk(netID,graph,env,leaders,pnpParameters,agentSpawn,simTime,worldType,ramdomQ,stateWname)
 def updateAni(content):
     # update agent positions
     # content.dummyUpdate()
@@ -137,6 +137,7 @@ def plot_multi_agent_trajectories(net, odeSol, flowTime):
     net.figure.text(0.5,0.01,'MAS Simulation with Graph Maintainance',ha='center',fontsize=11)
     # Add legend to lower right corner
     ax.legend(handles=legend_elements, loc='lower right',  ncol=1,fontsize=18)
+
 if solverType=='Euler':
     flowTime=np.linspace(0,simTime,simTime*60)
     ani=animation.FuncAnimation(
@@ -151,8 +152,8 @@ if solverType=='Euler':
     print('hi')
     myPath=os.path.abspath(__file__)
     # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
-    writerVideo = animation.FFMpegWriter(fps=60) 
-    ani.save('unicycleMovie.mp4', writer=writerVideo)
+    writerVideo = animation.FFMpegWriter(fps=60)
+    ani.save('unicycleMovie.mp4', writer=writerVideo, dpi=300)
 
 # elif solverType=='odeInt':
 
