@@ -80,7 +80,7 @@ class netwk():
             self.workspacePatch=shapely.plotting.plot_polygon(self.env.workspace,add_points=False)
             self.visualization.add_patch(self.workspacePatch)
             radius=0.9
-            self.arrowLen=0.8
+            self.arrowLen=0.8 # make this the linear speed ############
             self.verticesVisual={}
             self.arrowVisual={}
             for name in self.graph.names:
@@ -440,9 +440,9 @@ class netwk():
             pos = uv.col2tup(self.agents[name].pos)
             pose=uv.col2tup(self.agents[name].pose)
             self.verticesVisual[name].set(center=(pos[0],pos[1]))
-
-            arrow_dx=float(pose[0])*self.arrowLen
-            arrow_dy=float(pose[1])*self.arrowLen
+            agentLinearVel=self.agents[name].v[0][0]
+            arrow_dx=float(pose[0])*agentLinearVel
+            arrow_dy=float(pose[1])*agentLinearVel
             # self.arrowVisual[name].set(x=pos[0], y=pos[1], dx=arrow_dx, dy=arrow_dy)
             self.arrowVisual[name].remove()
             arrowPatch = patches.FancyArrow(pos[0],pos[1], arrow_dx, arrow_dy, color='yellow', width=0.05, length_includes_head=True)

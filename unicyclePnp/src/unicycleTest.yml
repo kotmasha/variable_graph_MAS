@@ -6,7 +6,7 @@ Wksp_bnds:
     - [0]
 solverType: 'Euler' #nsfPlots for nsf plots
 Obstacles:
-  worldType: 0                                   #0 is sphere world, 1 is star shaped, 2 is polygonal 
+  worldType: 2                                   #0 is sphere world, 1 is star shaped, 2 is polygonal 
   sphereWorld:
     obsNum: 2
     obsCenter:
@@ -70,7 +70,7 @@ Agents:
   randomQ: 0
   stateWnames: 2                                 #2 for puck with arrow
   NamesandPosandPose:
-    - ["Eigen", [5,5,0.7,0.7]] 
+    - ["Eigen", [10,3,0.7,0.7]] 
 
   Names:
     - Eigen

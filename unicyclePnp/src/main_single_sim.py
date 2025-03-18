@@ -149,7 +149,6 @@ if solverType=='Euler':
         # cache_frame_data=False,
         save_count=Nframes,
     )
-    print('hi')
     myPath=os.path.abspath(__file__)
     # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
     writerVideo = animation.FFMpegWriter(fps=60)

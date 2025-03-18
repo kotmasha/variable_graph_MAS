@@ -137,9 +137,10 @@ class sphereworldEnv(environment):
     def nearestUnsafePoint(self, state):
         x, y = state.flatten()
         point = shapely.geometry.Point(x, y)
-        if not self.workspace.contains(point):
-            print("Error: An agent has escaped into the real world. Please beware!")
-            return None
+        # if not self.workspace.contains(point):
+        #     sys.exit()
+        #     print("Error: An agent has escaped into the real world. Please beware!")
+        #     return None
         # Find nearest point on the workspace boundary
         workspace_boundary = self.workspace.exterior
         workspace_dist = workspace_boundary.project(point)
@@ -191,7 +192,6 @@ class starworldEnv(environment):
                 self.obstacleRadii[ii]=ii-0.5
         # print(self.obstacleCenters,self.obstacleRadii)
         self.obstacleClearance=8*np.array((self.obstacleData['starWorld']['obsClearance']))
-        print(self.obstacleClearance)
         angles = np.linspace(0, 2 * np.pi, self.obstacleNumPoints, endpoint=False)
         angles = np.append(angles, 0) 
         obstacleBufferList=[]

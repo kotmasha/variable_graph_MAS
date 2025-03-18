@@ -24,12 +24,6 @@ class Agent():
         self.pos=pos
         self.neighbors=network.neighbors(name)
         self.task=task
-
-        # self.addEgde=self.create_service(AddEdge,'AddEdge',)
-        # #Define parameters here
-        # self.declare_parameter('x_init', self.pos[0])
-        # self.declare_parameter('y_init', self.pos[1])
-        # self.declare_parameter('name', self.name)
         
     def navf(self,pos):
         return self.env.navfSphere(self.pos,pos)
@@ -100,7 +94,7 @@ class unicycleAgent(Agent):
             return None
         else:
             difference = pos - delta
-            print(f"my pos, nearest point and difference: {self.pos,delta,difference}")
+            # print(f"my pos, nearest point and difference: {self.pos,delta,difference}")
             norm = np.linalg.norm(difference)
             if norm != 0:  
                 normalized_difference = difference / norm
@@ -109,33 +103,20 @@ class unicycleAgent(Agent):
                 normalized_difference = difference  
             return normalized_difference
     def forward_control_input(self):
-        # print(f"alpha1(self.pos, self.pose): {self.alpha1(self.pos, self.pose)}")
-        # print(f"self.pose.T @ self.navf(self.target): {self.pose.T @ self.navf(self.target)}")
-        # print(f"alpha2(self.pos, self.pose): {self.alpha2(self.pos, self.pose)}")
-        # print(f"(self.skewJ @ self.pose).T @ self.navf(self.target): {(self.skewJ @ self.pose).T @ self.navf(self.target)}")
         
-        v = self.alpha1(self.pos, self.pose) * self.pose.T @ self.navf(self.target)
+        self.v=self.alpha1(self.pos,self.pose)*self.pose.T @self.navf(self.target)
         # + self.alpha2(self.pos, self.pose) * (self.skewJ @ self.pose).T @ self.navf(self.target)
         # print(f"v (before scaling): {v}")
-        
-        result = v * self.pose
+        result=self.v*self.pose
         # print(f"result (after scaling): {result}")
-        
         return result
 
     def angular_control_input(self):
-        # print(f"alpha2(self.pos, self.pose): {self.alpha2(self.pos, self.pose)}")
-        # print(f"self.pose.T @ self.navf(self.target): {self.pose.T @ self.navf(self.target)}")
-        # print(f"alpha1(self.pos, self.pose): {self.alpha1(self.pos, self.pose)}")
-        # print(f"(self.skewJ @ self.pose): {(self.skewJ @ self.pose)}")
-        
         w = self.alpha2(self.pos, self.pose) * (self.skewJ @ self.pose).T @ self.navf(self.target) 
         # + self.alpha1(self.pos, self.pose) * (self.skewJ @ self.pose)
-        # print(f"w (before scaling): {w}")
-        
+        # print(f"w (before scaling): {w}"        
         result = w * (self.skewJ @ self.pose)
         # print(f"result (after scaling): {result}")
-        
         return result
     
 
