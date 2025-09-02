@@ -1,6 +1,6 @@
 # Variable Graph Multi-Agent System (MAS) Controller
 
-A Python implementation of the **Proximity-based Navigation Protocol (PnP)** for multi-agent coordination and navigation in obstacle-rich environments. This framework enables distributed control of agent networks with dynamic graph topologies and obstacle avoidance capabilities.
+A Python implementation of the **Plug-and-Play (PnP)** for multi-agent coordination and navigation in obstacle-rich environments. This framework enables distributed control of agent networks with dynamic graph topologies and obstacle avoidance capabilities.
 
 ## Overview
 
@@ -14,7 +14,7 @@ This repository implements a distributed multi-agent system where agents coordin
 
 ### Plug-and-Play (PnP) Controller
 
-The system implements a **contractive PnP controller** that ensures:
+The system implements a controller that ensures:
 
 1. **Individual Navigation**: Each agent follows navigation fields for obstacle avoidance
 2. **Graph Maintenance**: Communication edges preserved via the Weak Invariance Principle (WIP)
@@ -241,14 +241,6 @@ python src/main_single_sim.py src/scenario1.yml 100
 python src/main_single_sim.py src/scenario2.yml 100
 ```
 
-## Research Context
-
-This implementation is based on research in distributed multi-agent coordination and formation control. The PnP framework provides theoretical guarantees for:
-- Network connectivity maintenance
-- Obstacle avoidance safety
-- Target convergence for leader agents
-- Scalability to large agent networks
-
 ## Troubleshooting
 
 ### Common Issues
@@ -276,3 +268,6 @@ MIT License - see `LICENSE` file for details.
 ## Citation
 
 If you use this code in your research, please cite the relevant publications on PnP multi-agent navigation protocols.
+
+Find the paper here:
+https://ncr.mae.ufl.edu/papers/tac24_3.pdf
