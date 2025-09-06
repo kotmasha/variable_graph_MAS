@@ -10,7 +10,7 @@ Key capabilities:
 - Multi-agent coordination with distance-limited communication
 - Communication graph maintenance
 - Obstacle avoidance in complex environments
-- Works with any single-agent navigation field
+- Works with any "good" single-agent navigation field
 - Real-time performance
 - Trajectory and connectivity visualization
 
