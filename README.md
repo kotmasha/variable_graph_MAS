@@ -1,4 +1,4 @@
-# Plug-and-Play Cooperative Navigation Framework
+# Variable Graph Naviagtion using Plug-and-Play (PnP) Cooperative Navigation Framework
 
 Implementation of the PnP cooperative navigation framework from "Plug-and-Play Cooperative Navigation: From Single-Agent Navigation Fields to Graph-Maintaining Distributed MAS Controllers" (IEEE Transactions on Automatic Control, 2024).
 
