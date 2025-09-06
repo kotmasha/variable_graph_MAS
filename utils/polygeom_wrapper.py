@@ -145,8 +145,12 @@ class PolyGeom:
             poly = Polygon(polygon_points)
             pt = Point(point)
             
+            # Check if point is inside polygon
+            if poly.contains(pt):
+                return 0.0, point
+            
             # Get distance and closest point
-            distance = poly.exterior.distance(pt)
+            distance = poly.distance(pt)  # Use polygon distance, not just exterior
             
             # Find closest point on boundary
             closest_point = poly.exterior.interpolate(poly.exterior.project(pt))
@@ -221,16 +225,20 @@ class PolyGeom:
             # Extract intersection points
             if intersection.is_empty:
                 return []
-            elif hasattr(intersection, 'coords'):
-                return list(intersection.coords)
             elif hasattr(intersection, 'geoms'):
                 points = []
                 for geom in intersection.geoms:
-                    if hasattr(geom, 'coords'):
+                    if hasattr(geom, 'x') and hasattr(geom, 'y'):
+                        points.append((geom.x, geom.y))
+                    elif hasattr(geom, 'coords'):
                         points.extend(list(geom.coords))
                 return points
-            else:
+            elif hasattr(intersection, 'coords'):
+                return list(intersection.coords)
+            elif hasattr(intersection, 'x') and hasattr(intersection, 'y'):
                 return [(intersection.x, intersection.y)]
+            else:
+                return []
                 
         except Exception as e:
             raise PolyGeomError(f"Error in polygon-line intersection: {e}")
@@ -268,8 +276,8 @@ class PolyGeom:
             # Create halfplane as large polygon
             center = halfplane_point
             halfplane_poly = Polygon([
-                (center[0] - length * px - length * nx, center[1] - length * py - length * ny),
-                (center[0] + length * px - length * nx, center[1] + length * py - length * ny),
+                (center[0] - length * px, center[1] - length * py),
+                (center[0] + length * px, center[1] + length * py),
                 (center[0] + length * px + length * nx, center[1] + length * py + length * ny),
                 (center[0] - length * px + length * nx, center[1] - length * py + length * ny)
             ])
