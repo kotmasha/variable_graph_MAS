@@ -1,0 +1,110 @@
+workPath: '~/sims/variable_graph_MAS/sims/easyTest/'
+Wksp_bnds:
+  upper:
+    - [30]
+  lower:
+    - [0]
+# solverType: 'nsfPlots' #nsfPlots for nsf plots
+solverType: 'Euler'
+Obstacles:
+  worldType: 0 #0 is sphere world, 1 is star shaped, 2 is polygonal 
+  sphereWorld:
+    obsNum: 6
+    obsCenter:
+      - [6.518, 9.866]
+      - [15.863, 21.396]
+      - [16.313, 6.927]
+      - [27.140, 14.266]
+      - [8.106, 18.449]
+      - [20.059, 15.143]
+    obsRadii: [3.287, 1.650, 2.954, 1.762, 3.280, 2.695]
+      
+  starWorld:
+    obsNum: 3
+    obsCenter:
+      - [6,7]
+      - [5,18]
+      - [17,13]
+    obsClearance: [0.65,0.65,0.5]
+
+  rectangle:
+    - [6, 2]
+    - [7, 2]
+    - [7, 9]
+    - [6, 9]
+    - [9, 9]
+    - [11, 9]
+    - [11, 7]
+    - [9, 7]
+
+pnpParameters:
+  Lazy: 0
+  coopGain: 9.35   # mu///omega for lazy
+  leaderGain: 0.55 #(this is gamma)
+  alpha: 1.01
+  rsafe: 0.4 
+  rcomm: 3
+
+netID: 'AutonomyPark'
+agentSpawn: 1
+
+Agents:
+  stateWnames: 1
+  NamesandPos:
+    - ["Zoe", [3, 1.67]]      # Scaled from [6, 5]
+    # - ["Bravo", [1.33, 1]]    # Scaled from [4, 3]
+    # - ["Charlie", [0.67, 0.67]] # Scaled from [2, 2]
+    # - ["Delta", [0.33, 0.33]]   # Scaled from [1, 1]
+    # - ["Echo", [1, 0.33]]       # Scaled from [3, 1]
+    # - ["Foxtrot", [1.67, 0.67]] # Scaled from [5, 2]
+    # - ["Golf", [2.67, 1]]       # Scaled from [8, 3]
+    # - ["Hotel", [3.33, 0.67]]   # Scaled from [10, 2]
+    # - ["India", [3.67, 0.33]]   # Scaled from [11, 1]
+    # - ["Juliett", [3, 0.33]]    # Scaled from [9, 1]
+    # - ["Kilo", [2.33, 0.67]] 
+
+  tree_mat_names:
+
+    # - ["Zoe", "Bravo"]
+    # - ["Bravo", "Zoe"]
+    # - ["Bravo", "Charlie"]
+    # - ["Charlie", "Bravo"]
+    # - ["Charlie", "Delta"]
+    # - ["Delta", "Charlie"]
+    # - ["Charlie", "Echo"]
+    # - ["Echo", "Charlie"]
+    # - ["Bravo", "Foxtrot"]
+    # - ["Foxtrot", "Bravo"]
+    # - ["Zoe", "Golf"]
+    # - ["Golf", "Zoe"]
+    # - ["Golf", "Hotel"]
+    # - ["Hotel", "Golf"]
+    # - ["Hotel", "India"]
+    # - ["India", "Hotel"]
+    # - ["Hotel", "Juliett"]
+    # - ["Juliett", "Hotel"]
+    # - ["Golf", "Kilo"]
+    # - ["Kilo", "Golf"]
+
+  Names:
+    - "Zoe"
+    # - "Bravo"
+    # - "Charlie"
+    # - "Delta"
+    # - "Echo"
+    # - "Foxtrot"
+    # - "Golf"
+    # - "Hotel"
+    # - "India"
+    # - "Juliett"
+    # - "Kilo"
+
+  AgentType:
+    # - ['Bob',"sphereNav"]
+    # - ['Joe',"sphereNav"]
+    - ['Zoe',"sphereNav"]
+
+  Leaders:
+    Zoe:
+      Target: [29,29]
+      keepUpQ:  False
