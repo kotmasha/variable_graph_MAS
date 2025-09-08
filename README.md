@@ -91,5 +91,3 @@ Guralnik, D.P., et al. "Plug-and-Play Cooperative Navigation: From Single-Agent 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file.
-
-Funding: AFOSR Awards FA9550-19-1-0169, FA9550-18-1-0109; ONR Grant N00014-21-1-2481
