@@ -22,7 +22,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <polygeom_lib.h>
+#include "polygeom_lib.h"
 
 
 std::vector<std::vector<double>> MatrixMatrixMultiplication(std::vector<std::vector<double>> Matrix1, std::vector<std::vector<double>> Matrix2) {
