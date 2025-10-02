@@ -51,9 +51,9 @@ pip install numpy matplotlib scipy shapely qpsolvers descartes pyyaml
 **Run simulation:**
 ```bash
 cd src/
-python main_single_sim.py ../config/easyTest.yml 10
+python main_single_sim.py easyTest.yml 100
 ```
-Arguments: configuration file, simulation time (seconds)
+Arguments: main sim runner, configuration file(yml), simulation time (seconds)
 
 **Environment types:**
 - `worldType: 0` - Circular obstacles
@@ -66,7 +66,7 @@ Arguments: configuration file, simulation time (seconds)
 
 ## Configuration
 
-See `config/` directory for examples. Key parameters:
+Key parameters:
 
 ```yaml
 pnpParameters:
@@ -91,5 +91,3 @@ Guralnik, D.P., et al. "Plug-and-Play Cooperative Navigation: From Single-Agent 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file.
-
-Funding: AFOSR Awards FA9550-19-1-0169, FA9550-18-1-0109; ONR Grant N00014-21-1-2481
