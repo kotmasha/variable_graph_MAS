@@ -338,6 +338,9 @@ class netwk():
         
     def reportPosition(self,name):
         return self.agents[name].state.q
+
+    def reportState(self,name):
+        return self.agents[name].state
         
     def spawnAgents(self):
     # go over dfs ordering of the vertices

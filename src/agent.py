@@ -47,24 +47,25 @@ class Agent():
         # self.declare_parameter('name', self.name)
         
     def own_state(self,networkState=None): # returns the agent's state, or, if a networkState is provided, then returns the agent's component in it.
-        if netWorkState is None:
+        if networkState is None:
             return self.state
         else:
             a,b=self.network.stateVectorInfo[self.name]
             return networkState[a:b,0]
 
-    def pollNeighborsStates(self,networkState=None):
+    def pollNeighborsStates(self):
         if self.neighbors==None:
             return None
         else:
-            if networkState is None: # follow through the reportPosition thread...
-                return {name:self.network.reportPosition(name) for name in self.neighbors}
-            else:
-                d={}
-                for name in self.neighbors:
-                    a,b=self.network.stateVectorInfo[name]
-                    d[name]=networkState[a:b,0]
-                return d
+            return {name:self.network.reportState(name) for name in self.neighbors}
+            # if networkState is None: # If no networkstate given, return dictionary of the states of all agents 
+            #     return {name:self.network.reportState(name) for name in self.neighbors}
+            # else: # If networkstate is given, return dictionary of states of all agents according to networkState vector
+            #     d={}
+            #     for name in self.neighbors:
+            #         a,b=self.network.stateVectorInfo[name]
+            #         d[name]=networkState[a:b,0]
+            #     return d
     
     def navf(self,goal,inputState=None):
         if inputState is None:
@@ -75,10 +76,11 @@ class Agent():
     def translatePos(self,vec):
         self.state.q=self.state.q+vec # Think about this & state/2ndorder class
     
-    def dynamics(self,controlInput,inputState=self.state): # DWR 6/17/2026: I think this is supposed to give a route to the controller computing for each agent type
+    def dynamics(self,controlInput,inputState=None): # DWR 6/17/2026: I think this is supposed to give a route to the controller computing for each agent type
+        if inputState is None:
+            inputState=self.state # Workaround for default value
         #some computation here using self.state and controlInput 
-        stateDot=0 # 0 is placeholder
-        return stateDot
+        return 0. # 0 is default dynamics value
 
     def computeController(self):
         #controller=self.navf(self.goal,self.state.q)
@@ -98,14 +100,21 @@ class fullyActuatedAgent(Agent):
         self.state=State(np.array(state['q']).T)
     
     def computeController(self,virtualState=None):  # See algorithm 4.2 in thesis for more info.
-        # Algorithm for computing on own state (the case when virtualState=None):
-        positions=self.pollNeighborsStates(virtualState) # NEED TO REDUCE STATES TO POSITIONS...
-        # Prepare "empty" control input vector
-        controlInput=np.zeros((2,1))
-        # Prepare "empty" network interaction component
-        pnpSummand=np.zeros((2,1))
-        # Accumulating the network interaction component
+        states=self.pollNeighborsStates() # Obtain a list of neighbors' states and reduce them to positions
+        if virtualState is None:
+            positions={name:states[name].pos() for name in states}
+        else:
+            positions={}
+            for name in states:
+                a,b=self.network.stateVectorInfo[name]
+                positions[name]=states[name].pos(virtualState[a:b,0])
+
         my_pos=self.own_state(virtualState)
+        # Prepare "empty" control input vector
+        controlInput=np.zeros_like(my_pos)
+        # Prepare "empty" network interaction component
+        pnpSummand=np.zeros_like(my_pos)
+        # Accumulating the network interaction component
         if self.task['KeepUpQ']:
             for name in self.neighbors: # 6/9/2026: Consider rewriting to iterate through the entries of the positions dictionary
                 navvec=self.navf(positions[name],my_pos)
@@ -115,21 +124,23 @@ class fullyActuatedAgent(Agent):
 
         # Calculate the navigation-to-goal component
         if 'Target' in self.task:
-            targ=np.array(self.task['Target'],shape=(2,1))
+            targ=np.matrix(self.task['Target'],shape=np.shape(my_pos))
             controlInput=controlInput+self.network.leaderGain*self.navf(targ,my_pos) # changed to use a State object as input for env.nav
 
         # Combine the target component with the network interaction component            
         controlInput=controlInput+pnpSummand
         return controlInput
     
-    def dynamics(self,controlInput,inputState=self.state): # implementation of xdot=f(x,u)=u
+    def dynamics(self,controlInput,inputState=None): # implementation of xdot=f(x,u)=u
+        if inputState is None:
+            inputState=self.state
         return controlInput
     
 
 class unicycleAgent(Agent): #Will use 2nd order state from states.py
     def __init__(self,name,env,network,task,state):
         super().__init__(name,env,network,task,state)
-        self.state=State2ndOrder(state['q'],state['p'])
+        self.state=State2ndOrder(state)
         # self.pose=yaw
     def nav(self,goal):
         return self.env.nav(goal,self.pos)
