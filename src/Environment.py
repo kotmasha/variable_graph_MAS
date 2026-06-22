@@ -13,86 +13,105 @@ import qpsolvers
 # import cvxopt
 import quadprog
 import sys
-class environment() :
-    def __init__(self,outerbounds,obstacleData):
-        # outerbounds:  a shapely polygon corresponding to the outer boundary of the workspace
-        # obstacleData:   data provided in the yaml file for obstacles (Not unpacked)
+class environment():
+    def __init__(self,envInfo):
+        # envInfo is the environment data read from the yaml file
+        self.wkspcLowerBds=np.array([[(envInfo['WorkspaceBdry']['Xmin']),(envInfo['WorkspaceBdry']['Ymin'])]]).T # DWR 6/15/26 fixed array not transposing properly; added () around the envInfo calls
+        self.wkspcUpperBds=np.array([[(envInfo['WorkspaceBdry']['Xmax']),(envInfo['WorkspaceBdry']['Ymax'])]]).T
+        self.workspace=shapely.geometry.polygon.orient(shapely.Polygon([ 
+            [envInfo['WorkspaceBdry']['Xmin'],envInfo['WorkspaceBdry']['Ymin']],
+            [envInfo['WorkspaceBdry']['Xmax'],envInfo['WorkspaceBdry']['Ymin']],
+            [envInfo['WorkspaceBdry']['Xmax'],envInfo['WorkspaceBdry']['Ymax']],
+            [envInfo['WorkspaceBdry']['Xmin'],envInfo['WorkspaceBdry']['Ymax']]
+        ]),1.0) # shapely polygon whose interior is the desired workspace
+        #DWR 6/15/26: the list of points in the four lines above needed to be converted to a shapely.polygon first
+        self.obstacleData=envInfo['Obstacles']
+        self.stateDim=envInfo['Dim']
         
-        self.outerbounds=outerbounds
-        self.obstacleData=obstacleData
-        self.workspace=shapely.geometry.polygon.orient(outerbounds,1.0) # shapely polygon whose interior is the desired workspace             
-        self.workspaceMatrix = np.array([[1, 0],[-1, 0],[0, 1],[0, -1]])
-        self.wMax=int(self.workspace.exterior.coords[1][0])
-        self.workspaceCoefficients=np.array([[self.wMax],[self.wMax],[self.wMax],[self.wMax]])
-        self.stateDim = 2
-
-
-    def radialNav(goal,state):    
-        return goal-state
+    def nav(self,goal,state): #  6/8/2026
+        return goal-state # default stand-in for a navigation field, to be re-defined in each subclass, like for sphere or polygon case
     
     def generateRndPoint(self, radius=None, refPt=None):  
         hitWorkspace=False
         while not hitWorkspace:
             if (radius is None) or (refPt is None):
-                [xmin, ymin, xmax, ymax] = shapely.bounds(self.workspace)
-                pt=np.array([[random.uniform(xmin,xmax)],[random.uniform(ymin,ymax)]])
-                hitWorkspace=shapely.contains_xy(self.workspace, pt[0,0], pt[1,0])   
+                pt=np.array([[random.uniform(self.wkspcLowerBds(0),self.wkspcUpperBds(0))],[random.uniform(self.wkspcLowerBds(1),self.wkspcUpperBds(1))]])
+                hitWorkspace=self.hitWkspc(pt)   
             else:   
                 th=random.uniform(0,2*np.pi)
                 rad=random.uniform(0,radius)
                 pt=refPt+rad*np.array([[np.cos(th)],[np.sin(th)]])
-                hitWorkspace=shapely.contains_xy(self.workspace, pt[0,0], pt[1,0])
+                hitWorkspace=self.hitWkspc(pt)
 
-        return pt
+    def hitWkspc(self,pt):
+        return shapely.contains_xy(self.workspace,pt[0,0],pt[1,0])
 
 class sphereworldEnv(environment):
 
-    def __init__(self,outerbounds,obstacleData):
-        super().__init__(outerbounds,obstacleData)
-        self.obstacleCenters=np.array(self.obstacleData['sphereWorld']['obsCenter'])
-        self.obstacleRadii=np.array(self.obstacleData['sphereWorld']['obsRadii'])
-        self.obstacleNum=len(self.obstacleRadii)
-        for ii in range(len(self.obstacleRadii)):
-            center=self.obstacleCenters[ii]
-            radius=self.obstacleRadii[ii]
-            self.workspace=shapely.difference(self.workspace,shapely.geometry.polygon.orient(shapelyObstacle.spawnSphere(center,radius),1.0))
-        self.workspaceFinal=self.workspace
-        # shapely.plotting.plot_polygon(self.workspace)
+    def __init__(self,envInfo): # sets up polygonal workspace, workspace - obstacles
+        super().__init__(envInfo)
 
-    def navfSphere(self,state,goal):
-        self.A=np.vstack((self.workspaceMatrix,self.safetyMatrix(state)))
-        self.bb=np.vstack((self.workspaceCoefficients-(self.workspaceMatrix@goal).reshape(len(self.workspaceMatrix),1),self.safetyCoefficients(goal,state)))
-        result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='piqp')
-        print(result)
+        self.obstacleNum=len(self.obstacleData)
+        self.obstacleCenters = [] # Prep list of obstacle centers
+        self.obstacleRadii = []  # Prep list of obstacle radii
+        # Loop over all the obstacles, fill the lists, and update the workspace (removing obstacles one by one)
+        for ObsName in self.obstacleData:
+            center=self.obstacleData[ObsName]['center']
+            self.obstacleCenters.append(center)
+            radius=self.obstacleData[ObsName]['radius']
+            self.obstacleRadii.append(radius)
+            self.workspace=shapely.difference(self.workspace,shapely.geometry.polygon.orient(shapelyObstacle.spawnSphere(center,radius),1.0))
+        # Transform lists into numpy arrays
+        self.obstacleCenters = np.array(self.obstacleCenters)
+        self.obstacleRadii = np.array(self.obstacleRadii)
+
+    def nav(self,goal,state): # both goal and state are assumed to be of type <class 'State'>
+        # set up a qp-solve problem for the projection of the goal to the safe polygon
+        # DWR 6/15/2026: Should wkspLower/upper and state.q and goal.q both be 2x1 vectors? At the start of my work with this, from plotQuiver, wksp was a 1x2 and state.q and goal.q were (and still are) 2x1
+        #print(f"goal:{goal.q}")
+        #print(f"state:{state.q}")
+        prob=qpsolvers.problem.Problem(
+            np.eye(2), # minimizing squared norm
+            np.zeros((2,1)), # no linear component in this QP
+            G=self.safetyMatrix(state.q), # safety constraints matrix
+            h=self.safetyCoefficients(goal.q,state.q), # safety constraints coefficients
+            lb=0.5*(self.wkspcLowerBds+state.q)-goal.q, # workspace boundary-safety lower bounds
+            ub=0.5*(self.wkspcUpperBds+state.q)-goal.q, # workspace boundary-safety upper bounds
+            #initvals=state.q-goal.q, #may or may not be needed, but could be used... #DWR 6/15/26: moved to qpsolvers.solve_qp according to the qpsolvers documentation
+        )
+        #solve the QP problem
+        #DWR 6/15/26: passing "prob" directly into solve_qp wasn't working. Best way would be to pass prob as kwargs, but I couldn't figure out how, since prob.unpack() outputs a tuple.
+        result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,lb=prob.lb,ub=prob.ub,solver='piqp',initvals=(state.q-goal.q))
         if result is None:
             result = np.zeros((2,1))
-        return goal+result.reshape((2,1))-state
+        return goal.q+result.reshape((2,1))-state.q
     
-    def safetyMatrix(self,state):
+    def safetyMatrix(self,pos):
         # Computes the coefficient matrix describing the safe polytope at the point z
-
         m=np.zeros((self.obstacleNum,self.stateDim))
         for i in range(self.obstacleNum):
-            m[i,:]=self.obstacleCenters[i]-state.T
+            #print(self.obstacleCenters[i], pos.T)
+            m[i,:]=self.obstacleCenters[i]-pos.T
             # pdb.set_trace()
         return m
 
-    def obstacleDist(self,state):
+    def obstacleDist(self,pos):
         # Computes the column vector of distances of z to the obstacle centers
         c=np.zeros((self.obstacleNum,1))
         for i in range(self.obstacleNum):
-            col = state - self.obstacleCenters[i,:].reshape((2,1))
+            col = pos - self.obstacleCenters[i,:].reshape((2,1))
             c[i,:] = np.sqrt(col.T @ col)
             # c[i]=la.norm(state-self.obstacleCenters[i].T)
         return c     
     
-    def safetyCoefficients(self,goal,state):
+    def safetyCoefficients(self,goal,pos): # goal and pos are 2-by-1 vectors
         # input should be column vectors
         b=np.zeros((self.obstacleNum,1))
-        dists=self.obstacleDist(state)
-        cons=self.safetyMatrix(state)
-        b=b+0.5*(dists*dists-self.obstacleRadii.reshape(-1,1)*dists)+cons @ (state-goal.reshape((2,1))) 
+        dists=self.obstacleDist(pos)
+        cons=self.safetyMatrix(pos)
+        b=b+0.5*(dists*dists-self.obstacleRadii.reshape(-1,1)*dists)+cons @ (pos-goal.reshape((2,1))) 
         return b
+    
     def inCircle(self,idx,idy,oc,oR):
         return (idx-oc[0])**2 + (idy-oc[1])**2 <= oR**2
     
@@ -205,7 +224,7 @@ class sphereworldEnv(environment):
 
         
         
-#     def navfSphere(self,state,goal):
+#     def navfSphere(self,goal,state):
 #         self.A=np.vstack((self.workspaceMatrix,self.safetyMatrix(state)))
 #         self.bb=np.vstack((self.workspaceCoefficients-(self.workspaceMatrix@goal).reshape(len(self.workspaceMatrix),1),self.safetyCoefficients(goal,state)))
 #         result=qpsolvers.solve_qp(np.eye(2),np.zeros((2,1)),self.A,self.bb,solver='piqp')
@@ -239,13 +258,13 @@ class sphereworldEnv(environment):
 #         b=b+0.5*(dists*dists-self.obstacleRadii.reshape(-1,1)*dists)+cons @ (state-goal.reshape((2,1))) 
 #         return b
     
-#     # def navfStar(self,state,goal):
+#     # def navfStar(self,goal,state):
 #     #     # ensure state,goal are coloumn vecs
 #     #     # print(state,goal)
 #     #     newG=self.wksp2sph(goal)
 #     #     newState=self.wksp2sph(state)
 #     #     # A = np.linalg.det(self.wksp2sphDeriv(state))
-#     #     return np.linalg.inv(self.wksp2sphDeriv(state))*self.navfSphere(newState,newG)
+#     #     return np.linalg.inv(self.wksp2sphDeriv(state))*self.navfSphere(newG,newState)
     
 #     def navfStar(self, state, goal):
 #         # Ensure state and goal are column vectors
@@ -257,7 +276,7 @@ class sphereworldEnv(environment):
 #         newState = self.wksp2sph(state)
 
 #         # Calculate navigation function in sphere coordinates
-#         nav_sphere = self.navfSphere(newState, newG)
+#         nav_sphere = self.navfSphere(newG, vnewState)
 
 #         # Calculate the Jacobian of the workspace-to-sphere transformation
 #         J = self.wksp2sphDeriv(state)

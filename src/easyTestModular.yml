@@ -1,0 +1,162 @@
+workPath: '~/sims/variable_graph_MAS/sims/easyTest/'
+EnvType: 'sphereworldEnv'
+
+EnvInfo:
+  Interface: 'odeInt'
+  WorkspaceBdry: # defines a rectangular domain with boundary parallel to the axes
+    Xmax: 10
+    Ymax: 10
+    Xmin: 0
+    Ymin: 0
+  Dim: 2 # Number of dimensions. Only 2-dimensional is implemented
+
+
+  # Interface: which interface is being used for updating the state? (ODE solver---which one? Robot---which one? etc.)
+  #            'nsfPlots' #nsfPlots for nsf plots, Euler for Euler integration, odeInt for ode integration using scipy, odeSolo for single-agent navigation by leader w/out changing other parameters
+  Obstacles:
+    One:
+      center: [2.5, 6.67]
+      radius: 1.
+    Two: 
+      center: [6.67, 2.]
+      radius: 0.67
+    Three: 
+      center: [7.33, 6.67]
+      radius: 0.67
+    Four: 
+      center: [5., 9.]
+      radius: 0.58
+    Five: 
+      center: [3.33, 2.33]
+      radius: 0.56
+
+Network:
+  netID: 'AutonomyPark'
+  networkInfo:
+    Duration: 300
+    networkTask:
+      Goals:
+        Goal1: [9., 9.]
+        Goal2: [4.02, 7.]
+        Goal3: [-5.2, 6.]
+    Agents:
+      Initialization: "Provided" # the other option is "Random"
+      AgentInfo:
+        Zoe:
+          Type: "fullyActuatedAgent" # Corresponding class in agent.py
+          State:
+            q: [[2., 1.67]] # The double brackets makes numpy.shape(q) output (1, 2) instead of (2,)
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+        Bravo:
+          Type: "fullyActuatedAgent"
+          State:
+            q: [[1.33, 1.]]
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+        Charlie:
+          Type: "fullyActuatedAgent"
+          State:
+            q: [[0.67, 0.67]]
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+        Delta:
+          Type: "fullyActuatedAgent"
+          State:
+            q: [[0.33, 0.33]]
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+        Echo:
+          Type: "fullyActuatedAgent"
+          State:
+            q: [[1., 0.33]]
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+        Foxtrot:
+          Type: "fullyActuatedAgent"
+          State:
+            q: [[1.67, 0.67]]
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+        Golf:
+          Type: "fullyActuatedAgent"
+          State:
+            q: [[2.67, 1.]]
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+        Hotel:
+          Type: "fullyActuatedAgent"
+          State:
+            q: [[3.33, 0.67]]
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+        India:
+          Type: "fullyActuatedAgent"
+          State:
+            q: [[3.67, 0.33]]
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+        Juliett:
+          Type: "fullyActuatedAgent"
+          State:
+            q: [[3., 0.33]]
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+        Kilo:
+          Type: "fullyActuatedAgent"
+          State:
+            q: [[2.33, 0.67]]
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+    Edges:
+      - ["Zoe", "Bravo"]
+      - ["Bravo", "Zoe"]
+      - ["Bravo", "Charlie"]
+      - ["Charlie", "Bravo"]
+      - ["Charlie", "Delta"]
+      - ["Delta", "Charlie"]
+      - ["Charlie", "Echo"]
+      - ["Echo", "Charlie"]
+      - ["Bravo", "Foxtrot"]
+      - ["Foxtrot", "Bravo"]
+      - ["Zoe", "Golf"]
+      - ["Golf", "Zoe"]
+      - ["Golf", "Hotel"]
+      - ["Hotel", "Golf"]
+      - ["Hotel", "India"]
+      - ["India", "Hotel"]
+      - ["Hotel", "Juliett"]
+      - ["Juliett", "Hotel"]
+      - ["Golf", "Kilo"]
+      - ["Kilo", "Golf"]
+    pnpParameters:
+      Lazy: 0
+      coopGain: 10  # mu///omega for lazy
+      leaderGain: 0.215 #(this is gamma)
+      alpha: 1.01
+      rsafe: 0.7
+      rcomm: 3
+
+

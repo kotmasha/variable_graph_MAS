@@ -14,7 +14,7 @@ class navigation:
         self.obstacleRadius=obstacleRadius
         self.obstacleCenters=obstacleCenters
         
-    def navfSphere(self,state,goal):
+    def nav(self,state,goal):
         #M is workspace matrix
         #C is 
         # A is the coeff matrix of inequality 

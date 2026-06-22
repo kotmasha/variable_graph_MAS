@@ -8,9 +8,8 @@ class agentask:
         for name in self.graph.names:
             self.taskList[name] = {}
             if name in self.leaders:
-                tmp=np.array([[self.leaders[name]['Target'][0]],[self.leaders[name]['Target'][1]]])
-                self.taskList[name]['target']=tmp
-                self.taskList[name]['keepUpQ']=self.leaders[name]['keepUpQ']
+                self.taskList[name]['target']=np.array(self.leaders[name]['Task']['Target']) # DWR 6/15/26: Not sure why it had separate ['Target'][0] and [1]
+                self.taskList[name]['keepUpQ']=self.leaders[name]['Task']['KeepUpQ']
             else:
                 self.taskList[name]['target']=None
                 self.taskList[name]['keepUpQ']=True

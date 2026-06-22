@@ -4,7 +4,9 @@ import numpy as np
 import os,sys
 import math
 import agent
-from agent import Agent
+#from agent import Agent
+from agent import fullyActuatedAgent
+from agent import unicycleAgent
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import shapely
@@ -15,25 +17,69 @@ import inspect
 from itertools import combinations
 from datetime import datetime
 from shapely.geometry import MultiPolygon, Polygon
+from graph_w_names import graph_w_names
+from states import State
 
 class netwk():
 
-    def __init__(self,netID,graphWithNames,env,leaders,pnpParameters,agentSpawn,simTime,worldType,stateWname=None):
-        self.graph=graphWithNames
-        self.agentNum=len(self.graph.names)
+    def __init__(self,networkInfo,env):
+        self.networkInfo=networkInfo # 6/15/26: Used to get definitions outside __init__ working; should probably be removed/changed later.
+        self.netID=networkInfo['netID']
+        self.simTime=networkInfo['networkInfo']['Duration']
         self.env=env
+        
+        # DWR 6/15/26: I remember we wanted to combine this with the agent calling loop, but calling agents.py requires self.graph, so this has to come first.
+        self.agentNames=list(networkInfo['networkInfo']['Agents']['AgentInfo']) #form a list of the keys in the agent dictionary
+
+        #form the list of edges and construct the network's .graph attribute (using the graphWNames class)
+        self.graph=graph_w_names(self.agentNames,networkInfo['networkInfo']['Edges'])
+
+        #form the agent list
+        self.agents={}
+        if networkInfo['networkInfo']['Agents']['Initialization']=='Provided':
+            for name in networkInfo['networkInfo']['Agents']['AgentInfo']:
+                self.agentTask=networkInfo['networkInfo']['Agents']['AgentInfo'][name]['Task']
+                self.agents[name]=getattr(agent,networkInfo['networkInfo']['Agents']['AgentInfo'][name]['Type'])(name,self.env,self,self.agentTask,networkInfo['networkInfo']['Agents']['AgentInfo'][name]['State'])
+        elif networkInfo['networkInfo']['Initialization']=='Random': ##deferred for later
+            for name in networkInfo['Agents']['AgentInfo']: # stand-in for randomized SPAWNING code 
+                self.agents[name]=getattr(agent,networkInfo['Agents']['AgentInfo'][name]['Type'])(**networkInfo['Agents']['AgentInfo'][name]['State'])
+        
+        #form a dictionary with additional data on the organization of the state vector
+        # DWR: Will the state vector always contain the p vector, or only when the p vector is being used?
+        self.stateVectorInfo={} # set up empty dictionary
+        dictLoop=0 # loop counter setup
+        for name in networkInfo['networkInfo']['Agents']['AgentInfo']:
+            self.stateVectorInfo[name]=[dictLoop,dictLoop+self.agents[name].state.size()] # Assigns name key a list containing the first and last entry of that agent in the big state vector
+            dictLoop=dictLoop+self.agents[name].state.size()
+        self.networkStateSize=dictLoop
+
+        #form the list of leaders # DWR 6/16/26: Could remove it
+        #self.leaders = networkInfo['networkInfo']['Agents']['Leaders']
+
+        #construct the network-level update
+
+        #form the stateWname dict
+        # self.stateWname = {} # empty dictionary setup
+        # for name,stateVect in networkInfo['Agents']['AgentInfo']:
+        #     self.stateWname[name] = networkInfo['Agents']['AgentInfo']
+
+
+        #compute cooperation parameters, if relevant (?)
+        self.pnpParameters=networkInfo['networkInfo']['pnpParameters']
+        self.agentNum=self.graph.agentNum
         self.agents={name:None for name in self.graph.names}
-        self.netID=netID
-        self.rcomm=pnpParameters['rcomm']
-        self.rsafe=pnpParameters['rsafe']*pnpParameters['rcomm']
-        self.alpha=pnpParameters['alpha']
-        self.leaderGain=pnpParameters['leaderGain']
-        self.LazyQ=bool(pnpParameters['Lazy'])
-        self.coopGain=int(pnpParameters['coopGain'])
-        self.stateWname=stateWname
+        #self.stateWname=stateWname # I'm not sure we even need stateWname anymore. The only place it is currently used is in setting mode to 0 or 1.
+        self.stateWname=1 # dummy value to get it running
+        self.rcomm=self.pnpParameters['rcomm']
+        self.rsafe=self.pnpParameters['rsafe']*self.pnpParameters['rcomm']
+        self.alpha=self.pnpParameters['alpha']
+        self.leaderGain=self.pnpParameters['leaderGain']
+        self.LazyQ=bool(self.pnpParameters['Lazy'])
+        self.coopGain=int(self.pnpParameters['coopGain'])
+        self.m=1/self.pnpParameters['rsafe']
+        #self.leaders=self.leaderList # may want to just use the initial self.leaderList for less confusion
         self.timestart=0.0
-        self.simTime=simTime
-        self.worldType = worldType
+        self.worldType = 0 # dummy value to get running; Any code corresponding to this should be moved to Environment.py
         self.updatedEdges = self.cleanEdge(self.graph.edges)
         self.edgeData = {
             'edge': [],
@@ -52,9 +98,8 @@ class netwk():
             self.mode=1
         else:
             self.mode=0
-        self.leaders=leaders
-        self.m=1/pnpParameters['rsafe']
-
+        
+        ### compute some of the pnp parameters
 
         if self.graph.edges!=None:
 
@@ -70,14 +115,15 @@ class netwk():
         self.interiorPt=np.array([-5,-5])
         # if experiment requires agents
         
-        self.agentSpawn=agentSpawn
-        if self.agentSpawn and self.graph.edges!=None:
+        # 6/9/2026: Starting from here & below, need to rewrite the ntwork visualization code into generic code
 
-            self.task=agentask(self.graph,self.leaders)
+        self.agentSpawn=1 # dummy value to replace input from __init__. Should be rewritten
+        if self.agentSpawn and self.graph.edges!=None:
+            self.task=agentask(self.graph,networkInfo['networkInfo']['Agents']['AgentInfo']) # 6/16/2026 DWR: Going with the task-oriented instead of leader-based approach
             self.populate(self.mode)
             self.y0=np.empty((0,1))
             for name in self.graph.names:
-                self.y0=np.vstack((self.y0,self.agents[name].pos))
+                self.y0=np.vstack((self.y0,self.agents[name].state.q[0][0])) # DWR 6/17/2026: We should remove this, since we intend to use stateVectorInfo
             self.figure,self.visualization=plt.subplots()
             # self.figure=self.visualization.get_figure()       
             self.workspacePatch=shapely.plotting.plot_polygon(self.env.workspace,add_points=False)
@@ -89,16 +135,18 @@ class netwk():
             # form dictionary of agent position visual representations
 
             self.verticesVisual={name:patches.Circle(
-                uv.col2tup(self.agents[name].pos),
+                #uv.col2tup(self.agents[name].pos),
+                uv.col2tup(np.matrix(self.agents[name].state.q)), #not sure if the matrix conversion is the best way to do this
                 radius=0.2,
                 label=name,
-                color='purple' if name in self.leaders else 'orange',
+                #color='purple' if name in self.leaders else 'orange',
+                color='purple',
                 animated=True,
                 ) for name in self.graph.names}
 
             # form dictionary of agent edges visual representations
             self.edgesVisual={edge:patches.Polygon(
-                np.asarray(np.hstack((self.agents[edge[0]].pos,self.agents[edge[1]].pos)).T),
+                np.asarray(np.hstack((np.array(self.agents[self.graph.indexToVertex[edge[0]]].state.q),np.array(self.agents[self.graph.indexToVertex[edge[1]]].state.q)))),
                 closed=False,
                 edgecolor='black',                                                              
                 linestyle='-',
@@ -112,9 +160,9 @@ class netwk():
 
             for name in self.graph.names:
                 self.visualization.add_patch(self.verticesVisual[name])
-            target=np.array([self.leaders['Zoe']['Target'][0],self.leaders['Zoe']['Target'][1]])
+            target=np.array((networkInfo['networkInfo']['networkTask']['Goals']['Goal1']))
             
-            self.goalVisual=self.visualization.plot(self.leaders['Zoe']['Target'][0],self.leaders['Zoe']['Target'][1],'rx')
+            self.goalVisual=self.visualization.plot(target[0],target[1],'rx')
             self.plotQuiver(target.reshape((2,1)))
             if self.LazyQ:
                 titlePlot='Lazy PnP Controller'
@@ -128,12 +176,11 @@ class netwk():
 
 
 
-
-
-
-        elif agentSpawn and self.agentNum==1:
-            for name,pos in self.stateWname:
-                self.agents[name]=Agent(name, self.env, self,{'target': np.array([[9],[9]]), 'keepUpQ': False}, np.array(pos).reshape((2,1)))
+        elif self.agentSpawn and self.agentNum==1: # Needs to be cleaned up
+            for agentName in networkInfo['Agents']['AgentInfo']: # 6/10/26 Dan code with minor edits by Davy
+                self.agents[agentName]=getattr(agent,agentName['Type'])(**agentName['State'])
+            # for name,pos in self.stateWname:
+            #     self.agents[name]=Agent(name, self.env, self,{'target': np.array([[9],[9]]), 'keepUpQ': False}, np.array(pos).reshape((2,1)))
             self.figure,self.visualization=plt.subplots()
             # self.figure=self.visualization.get_figure()       
             self.workspacePatch=shapely.plotting.plot_polygon(self.env.workspace,add_points=False)
@@ -157,7 +204,7 @@ class netwk():
             # plt.show()
 
             
-        elif not agentSpawn:
+        elif not self.agentSpawn:
             self.figure,self.visualization=plt.subplots()
             # self.figure=self.visualization.get_figure()       
             self.workspacePatch=shapely.plotting.plot_polygon(self.env.workspace,add_points=False)
@@ -168,7 +215,19 @@ class netwk():
             sys.exit()
 
 
+    def formNetworkStateVector(self):
+        x=np.zeros((1,self.networkStateSize))
+        for name in self.agentNames:
+            a,b=self.stateVectorInfo[name]
+            x[0,a:b+1]=x[0,a:b+1]+np.array(self.agents[name].state.flatten()).T
+        return x
 
+    def updateNetworkState(self,ns):
+        #distribute the flattened network state, denoted ns, to all the agents in the network
+        for name in self.agents:
+            a,b=self.stateVectorInfo[name]
+            self.agents[name].update(ns[a:b,0])
+        #return None
 
     def plotQuiver(self,target):
         [xmin, ymin, xmax, ymax] = shapely.bounds(self.env.workspace)
@@ -182,13 +241,12 @@ class netwk():
         maxX=lenX[0]
         for idx in range(maxX):
             for idy in range(maxX):
-                
-                state=np.array([X[idx, idy], Y[idx, idy]]).reshape((2,1))
-                goal=np.array(target)
+                state=State(np.array([X[idx, idy], Y[idx, idy]]).reshape((2,1)))
+                goal=State(np.array(target))
                 if self.worldType == 1:
-                    navV=self.env.navfStar(state,goal)
+                    navV=self.env.navfStar(goal,state)
                 elif self.worldType == 0:
-                    navV=self.env.navfSphere(state,goal)
+                    navV=self.env.nav(goal,state)
                 U[idx,idy]=navV[0,0]
                 V[idx,idy]=navV[1,0]
 
@@ -198,39 +256,15 @@ class netwk():
         # plt.show()
 
 
-
-    def pnpFlowMap(self, y, t):
-        vertex_indices = self.graph.vertex_indices
-        xStack = y.reshape(-1, 1)  # Reshape input to column vector
-        n_agents = len(self.graph.names)
+    def FlowMap(self, y, t):
+        xStack = y.reshape(-1, 1)  # Reshape input to column vector (ODE solver inputs and outputs row state vectors)
         dydt = np.zeros_like(xStack)
 
-        for name in self.graph.names:
-            idx = 2 * vertex_indices[name]
-            myState = xStack[idx:idx+2]
-            nbrs = self.neighbors(name)
-            nbrIdx = [2 * vertex_indices[val] for val in nbrs]
-
-            controlInput = np.zeros((2, 1))
-            pnpSummand = np.zeros((2, 1))
-
-            if self.task.taskList[name]['keepUpQ']:
-                for nbr in nbrIdx:
-                    nbrState = xStack[nbr:nbr+2]
-                    navvec = self.env.navfSphere(myState, nbrState)
-                    relpos = nbrState - myState
-                    navxi = self.tension_func(la.norm(relpos)) * (la.norm(relpos)**2) / (relpos.T @ navvec + 1e-8)
-                    pnpSummand += navxi * navvec
-
-            targ = self.task.taskList[name]['target']
-            if targ is None:
-                controlInput = pnpSummand
-            else:
-                controlInput = pnpSummand + self.leaderGain * self.env.navfSphere(myState, targ.reshape((2, 1)))
-
-            dydt[idx:idx+2] = controlInput
-
-        return dydt.flatten()
+        for name in self.agents:
+            # obtain the state of the current agent in the loop
+            a,b=self.stateVectorInfo[name]
+            dydt[a:b,0]=(self.agents[name].clientOutputSim(xStack)).flatten()
+        return dydt.T
 
     # def pnpFlowMap(self,y,t):
 
@@ -269,7 +303,15 @@ class netwk():
         # controlInput=np.zeros((2,1))
         myState=np.array((y))
         targ=np.array((self.task.taskList['Zoe']['target']))
-        navvec=self.env.navfSphere(myState.reshape((2,1)),targ.reshape((2,1)))
+        navvec=self.env.nav(myState.reshape((2,1)),targ.reshape((2,1))) # Edit navfsphere according to new nav-per-environment system
+        dydt=self.leaderGain*navvec
+        return dydt.flatten()
+    
+    def pnpFlowMapsoloUnicycle(self,y,t):
+        # controlInput=np.zeros((2,1))
+        myState=np.array((y))
+        targ=np.array((self.task.taskList['Zoe']['target']))
+        navvec=self.env.nav(myState.reshape((2,1)),targ.reshape((2,1))) # Edit navfsphere according to new nav-per-environment system
         dydt=self.leaderGain*navvec
         return dydt.flatten()
 
@@ -278,21 +320,24 @@ class netwk():
     
     def neighborPos(self,name,xStack):
         # returns a list of neighbor position for a given agent name
-        ls=enumerate(self.graph.getrow(self.vertex_indices[name]).toarray()[0].tolist())
+        ls=enumerate(self.graph.getrow(self.graph.vertexIndices[name]).toarray()[0].tolist())
         return [self.names[x] for x,y in ls if y==1]    
     
     def populate(self,mode=0):
         if mode==0:
             self.spawnAgents()
         elif self.mode==1:
-            for name,pos in self.stateWname:
-                # print(name,self.task.taskList[name])
-                self.agents[name]=Agent(name, self.env, self,self.task.taskList[name], np.array(pos).reshape((2,1)))
+            for name in self.agentNames: # 6/10/26 Dan code with edits by Davy. May need changes to reflect its usage in populate
+                self.agents[name]=getattr(agent,self.networkInfo['networkInfo']['Agents']['AgentInfo'][name]['Type'])(name,self.env,self,self.agentTask,self.networkInfo['networkInfo']['Agents']['AgentInfo'][name]['State']) 
+            # for name,pos in self.stateWname: # code replaced by 6/10/26 Dan and Davy code
+            #     # print(name,self.task.taskList[name])
+            #     #self.agents[name]=Agent(name, self.env, self,self.task.taskList[name], np.array(pos).reshape((2,1)))
+            #     self.agents[name]=Agent(name, self.env, self,self.task.taskList[name], np.array(pos).reshape((2,1)))
         else:
             raise Exception("Invalid network generation mode")
         
     def reportPosition(self,name):
-        return self.agents[name].pos
+        return self.agents[name].state.q
         
     def spawnAgents(self):
     # go over dfs ordering of the vertices
@@ -308,7 +353,7 @@ class netwk():
                 pt=self.env.generateRndPoint(self.rsafe,parent_pos)
             # assign the generated pt to an agent object named item
             # here pt is a vertical np array
-            self.agents[item]=Agent(item, self.env, self,self.task.taskList[item], pt)
+            self.agents[item]=getattr(agent,self.networkInfo['Agents']['AgentInfo'][item]['Type'])
         return self.agents
     
     def tension_func(self,s):

@@ -6,7 +6,7 @@ Wksp_bnds:
    - [0]
 
 # solverType: 'nsfPlots' #nsfPlots for nsf plots, Euler for Euler integration, odeInt for ode integration using scipy
-solverType: 'odeInt'
+solverType: 'odeSolo'
 Obstacles:
   worldType: 0 #0 is sphere world, 1 is star shaped, 2 is polygonal
   sphereWorld:
