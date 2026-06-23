@@ -68,8 +68,6 @@ class sphereworldEnv(environment):
     def nav(self,goal,state): # both goal and state are assumed to be of type <class 'State'>
         # set up a qp-solve problem for the projection of the goal to the safe polygon
         # DWR 6/15/2026: Should wkspLower/upper and state.q and goal.q both be 2x1 vectors? At the start of my work with this, from plotQuiver, wksp was a 1x2 and state.q and goal.q were (and still are) 2x1
-        #print(f"goal:{goal.q}")
-        #print(f"state:{state.q}")
         prob=qpsolvers.problem.Problem(
             np.eye(2), # minimizing squared norm
             np.zeros((2,1)), # no linear component in this QP
@@ -99,7 +97,7 @@ class sphereworldEnv(environment):
         # Computes the column vector of distances of z to the obstacle centers
         c=np.zeros((self.obstacleNum,1))
         for i in range(self.obstacleNum):
-            col = pos - self.obstacleCenters[i,:].reshape((2,1))
+            col = pos.reshape((2,1)) - self.obstacleCenters[i,:].reshape((2,1))
             c[i,:] = np.sqrt(col.T @ col)
             # c[i]=la.norm(state-self.obstacleCenters[i].T)
         return c     

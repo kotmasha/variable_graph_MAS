@@ -219,7 +219,7 @@ class netwk():
         x=np.zeros((1,self.networkStateSize))
         for name in self.agentNames:
             a,b=self.stateVectorInfo[name]
-            x[0,a:b+1]=x[0,a:b+1]+np.array(self.agents[name].state.flatten()).T
+            x[0,a:b]=x[0,a:b]+np.array(self.agents[name].state.flatten()).T
         return x
 
     def updateNetworkState(self,ns):

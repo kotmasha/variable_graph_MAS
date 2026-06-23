@@ -183,7 +183,6 @@ elif solverType=="odeInt": #For OdeInt
     print(stateVector)
     odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
     print(odeSol)
-    print(np.shape(odeSol))
     # plt.plot(odeSol[:,0],odeSol[:,1],'b--')
     plot_multi_agent_trajectories(net, odeSol, flowTime)
     plt.title('ODE Solution for Multiple Agents')
