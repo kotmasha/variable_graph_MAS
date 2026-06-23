@@ -65,24 +65,21 @@ class sphereworldEnv(environment):
         self.obstacleCenters = np.array(self.obstacleCenters)
         self.obstacleRadii = np.array(self.obstacleRadii)
 
-    def nav(self,goal,state): # both goal and state are assumed to be of type <class 'State'>
+    def nav(self,goal,pos): # both goal and state are assumed to be numpy column vector matrices
         # set up a qp-solve problem for the projection of the goal to the safe polygon
-        # DWR 6/15/2026: Should wkspLower/upper and state.q and goal.q both be 2x1 vectors? At the start of my work with this, from plotQuiver, wksp was a 1x2 and state.q and goal.q were (and still are) 2x1
         prob=qpsolvers.problem.Problem(
-            np.eye(2), # minimizing squared norm
-            np.zeros((2,1)), # no linear component in this QP
-            G=self.safetyMatrix(state.q), # safety constraints matrix
-            h=self.safetyCoefficients(goal.q,state.q), # safety constraints coefficients
-            lb=0.5*(self.wkspcLowerBds+state.q)-goal.q, # workspace boundary-safety lower bounds
-            ub=0.5*(self.wkspcUpperBds+state.q)-goal.q, # workspace boundary-safety upper bounds
-            #initvals=state.q-goal.q, #may or may not be needed, but could be used... #DWR 6/15/26: moved to qpsolvers.solve_qp according to the qpsolvers documentation
+            np.eye(size(goal)), # minimizing squared norm
+            np.zeros((size(goal),1)), # no linear component in this QP
+            G=self.safetyMatrix(pos), # safety constraints matrix
+            h=self.safetyCoefficients(goal,pos), # safety constraints coefficients
+            lb=0.5*(self.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
+            ub=0.5*(self.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
         )
         #solve the QP problem
-        #DWR 6/15/26: passing "prob" directly into solve_qp wasn't working. Best way would be to pass prob as kwargs, but I couldn't figure out how, since prob.unpack() outputs a tuple.
         result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,lb=prob.lb,ub=prob.ub,solver='piqp',initvals=(state.q-goal.q))
         if result is None:
-            result = np.zeros((2,1))
-        return goal.q+result.reshape((2,1))-state.q
+            result = np.zeros((size(goal),1))
+        return goal.q+result.reshape((size(goal),1))-pos
     
     def safetyMatrix(self,pos):
         # Computes the coefficient matrix describing the safe polytope at the point z
@@ -97,7 +94,7 @@ class sphereworldEnv(environment):
         # Computes the column vector of distances of z to the obstacle centers
         c=np.zeros((self.obstacleNum,1))
         for i in range(self.obstacleNum):
-            col = pos.reshape((2,1)) - self.obstacleCenters[i,:].reshape((2,1))
+            col = pos.reshape((size(pos),1)) - self.obstacleCenters[i,:].reshape((size(pos),1))
             c[i,:] = np.sqrt(col.T @ col)
             # c[i]=la.norm(state-self.obstacleCenters[i].T)
         return c     
@@ -107,7 +104,7 @@ class sphereworldEnv(environment):
         b=np.zeros((self.obstacleNum,1))
         dists=self.obstacleDist(pos)
         cons=self.safetyMatrix(pos)
-        b=b+0.5*(dists*dists-self.obstacleRadii.reshape(-1,1)*dists)+cons @ (pos-goal.reshape((2,1))) 
+        b=b+0.5*(dists*dists-self.obstacleRadii.reshape(-1,1)*dists)+cons @ (pos-goal.reshape((size(goal),1))) 
         return b
     
     def inCircle(self,idx,idy,oc,oR):

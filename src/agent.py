@@ -46,12 +46,12 @@ class Agent():
         # self.declare_parameter('y_init', self.pos[1])
         # self.declare_parameter('name', self.name)
         
-    def own_state(self,networkState=None): # returns the agent's state, or, if a networkState is provided, then returns the agent's component in it.
+    def own_state(self,networkState=None): # returns the agent's state, or, if a networkState is provided, then returns the agent's component in it as a state of the same subclass
         if networkState is None:
             return self.state
         else:
             a,b=self.network.stateVectorInfo[self.name]
-            return networkState[a:b,0]
+            return self.state.__class__(networkState[a:b,0])
 
     def pollNeighborsStates(self):
         if self.neighbors==None:
@@ -67,11 +67,11 @@ class Agent():
             #         d[name]=networkState[a:b,0]
             #     return d
     
-    def navf(self,goal,inputState=None):
-        if inputState is None:
-            return self.env.nav(goal,self.state)
+    def navf(self,goal,inputPos=None): # both goal and inputPos are position vectors (column matrices)
+        if inputPos is None:
+            return self.env.nav(goal,self.state.pos())
         else:
-            return self.env.nav(goal,inputState)
+            return self.env.nav(goal,inputPos)
 
     def translatePos(self,vec):
         self.state.q=self.state.q+vec # Think about this & state/2ndorder class
@@ -83,7 +83,6 @@ class Agent():
         return 0. # 0 is default dynamics value
 
     def computeController(self):
-        #controller=self.navf(self.goal,self.state.q)
         controller=np.zeros(self.state.q.size) # Default controller is null
         return controller
 
@@ -99,6 +98,11 @@ class fullyActuatedAgent(Agent):
         super().__init__(name,env,network,task,state)
         self.state=State(np.array(state['q']).T)
     
+    def dynamics(self,controlInput,inputState=None): # implementation of xdot=f(x,u)=u
+        if inputState is None:
+            inputState=self.state
+        return controlInput
+    
     def computeController(self,virtualState=None):  # See algorithm 4.2 in thesis for more info.
         states=self.pollNeighborsStates() # Obtain a list of neighbors' states and reduce them to positions
         if virtualState is None:
@@ -109,7 +113,7 @@ class fullyActuatedAgent(Agent):
                 a,b=self.network.stateVectorInfo[name]
                 positions[name]=states[name].pos(virtualState[a:b,0])
 
-        my_pos=self.own_state(virtualState)
+        my_pos=self.own_state(virtualState).pos()
         # Prepare "empty" control input vector
         controlInput=np.zeros_like(my_pos)
         # Prepare "empty" network interaction component
@@ -126,15 +130,10 @@ class fullyActuatedAgent(Agent):
         if 'Target' in self.task:
             #targ=np.matrix(self.task['Target'],shape=np.shape(my_pos)) # Old version from 6/22/2026
             targ=np.matrix(np.reshape(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']],shape=np.shape(my_pos)))
-            controlInput=controlInput+self.network.leaderGain*self.navf(State(targ.T),State(np.matrix(my_pos).T)) # nav requires State objects from states.py. Will this way cause lag?
-
+            controlInput=controlInput+self.network.leaderGain*self.navf(targ,my_pos) 
+            
         # Combine the target component with the network interaction component        
         controlInput=controlInput+pnpSummand
-        return controlInput
-    
-    def dynamics(self,controlInput,inputState=None): # implementation of xdot=f(x,u)=u
-        if inputState is None:
-            inputState=self.state
         return controlInput
     
 
