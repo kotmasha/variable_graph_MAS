@@ -57,7 +57,7 @@ Network:
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
-            KeepUpQ: False
+            KeepUpQ: True
         Charlie:
           Type: "fullyActuatedAgent"
           State:
@@ -65,7 +65,7 @@ Network:
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
-            KeepUpQ: False
+            KeepUpQ: True
         Delta:
           Type: "fullyActuatedAgent"
           State:
@@ -73,7 +73,7 @@ Network:
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
-            KeepUpQ: False
+            KeepUpQ: True
         Echo:
           Type: "fullyActuatedAgent"
           State:
@@ -81,7 +81,7 @@ Network:
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
-            KeepUpQ: False
+            KeepUpQ: True
         Foxtrot:
           Type: "fullyActuatedAgent"
           State:
@@ -89,7 +89,7 @@ Network:
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
-            KeepUpQ: False
+            KeepUpQ: True
         Golf:
           Type: "fullyActuatedAgent"
           State:
@@ -97,7 +97,7 @@ Network:
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
-            KeepUpQ: False
+            KeepUpQ: True
         Hotel:
           Type: "fullyActuatedAgent"
           State:
@@ -105,7 +105,7 @@ Network:
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
-            KeepUpQ: False
+            KeepUpQ: True
         India:
           Type: "fullyActuatedAgent"
           State:
@@ -113,7 +113,7 @@ Network:
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
-            KeepUpQ: False
+            KeepUpQ: True
         Juliett:
           Type: "fullyActuatedAgent"
           State:
@@ -121,7 +121,7 @@ Network:
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
-            KeepUpQ: False
+            KeepUpQ: True
         Kilo:
           Type: "fullyActuatedAgent"
           State:
@@ -129,7 +129,7 @@ Network:
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
-            KeepUpQ: False
+            KeepUpQ: True
     Edges:
       - ["Zoe", "Bravo"]
       - ["Bravo", "Zoe"]

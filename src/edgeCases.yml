@@ -1,59 +1,49 @@
 
 workPath: '~/sims/variable_graph_MAS/sims/edgeCases/'
-Wksp_bnds:
-  upper:
-    - [15]
-  lower:
-    - [0]
+EnvType: 'sphereworldEnv'
 
-solverType: 'Euler'
+EnvInfo:
+  Interface: 'Euler'
+  WorkspaceBdry: # defines a rectangular domain with boundary parallel to the axes
+    Xmax: 15
+    Ymax: 15
+    Xmin: 0
+    Ymin: 0
+  Dim: 2 # Number of dimensions. Only 2-dimensional is implemented
+  Obstacles:
+    One:
+      center: [3., 12.]
+      radius: 2.
+    Two:
+      center: [12., 3.]
+      radius: 2.
+    Three:
+      center: [7., 7.]
+      radius: 3.
 
-Obstacles:
-  worldType: 0 #0 is sphere world, 1 is star shaped, 2 is polygonal 
-  sphereWorld:
-    obsNum: 3
-    obsCenter:
-      - [3,12]
-      - [12,3]
-      - [7,7]
-    obsRadii: [2,2,3]
-
-  rectangle:
-    - [6, 2]
-    - [7, 2]
-    - [7, 9]
-    - [6, 9]
-    - [9, 9]
-    - [11, 9]
-    - [11, 7]
-    - [9, 7]
-
-pnpParameters:
-  Lazy: 0
-  coopGain: 10  
-  leaderGain: 0.01 #(this is gamma)
-  alpha: 1.01
-  rsafe: 0.7
-  rcomm: 3
-
-netID: 'AutonomyPark'
-
-Agents:
-  stateWnames: 1 #1 if provided initial state  0 otherwise
-  NamesandPos:
-    - ["Joe" ,[3,5]]
-
-  tree_mat_names:
-    - ['None','None']
-  Names:
-    - "Joe"
-
-
-  AgentType:
-    - ['Joe',"sphereNav"]
-
-
-  Leaders:
-    Joe:
-      Target: [14,14]
-      keepUpQ:  False
+Network:
+  netID: 'AutonomyPark'
+  networkInfo:
+    Duration: 300
+    networkTask:
+      Goals:
+        Goal1: [14., 14.]
+    Agents:
+      Initialization: "Provided" # the other option is "Random"
+      AgentInfo:
+        Joe:
+          Type: "fullyActuatedAgent" # Corresponding class in agent.py
+          State:
+            q: [[3., 5.]] # The double brackets makes numpy.shape(q) output (1, 2) instead of (2,)
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+    Edges:
+    pnpParameters:
+      Lazy: 0
+      coopGain: 10  
+      leaderGain: 0.01 #(this is gamma)
+      alpha: 1.01
+      rsafe: 0.7
+      rcomm: 3

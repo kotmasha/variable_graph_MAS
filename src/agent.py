@@ -111,7 +111,7 @@ class fullyActuatedAgent(Agent):
             positions={}
             for name in states:
                 a,b=self.network.stateVectorInfo[name]
-                positions[name]=states[name].pos(virtualState[a:b,0])
+                positions[name]=(states[name].pos(virtualState[a:b,0])).reshape((b-a),1)
 
         my_pos=self.own_state(virtualState).pos()
         # Prepare "empty" control input vector
@@ -124,8 +124,8 @@ class fullyActuatedAgent(Agent):
                 navvec=self.navf(positions[name],my_pos)
                 relpos=positions[name]-my_pos # 
                 navxi=self.network.tension_func(la.norm(relpos))*(la.norm(relpos)**2)/(0.+(relpos.T@navvec))
-                pnpSummand=pnpSummand+navxi*navvec
-
+                pnpSummand=pnpSummand+navvec*navxi #reordered navvec and navxi, it gave a not aligned error since navxi is a 1x1 array
+        
         # Calculate the navigation-to-goal component
         if 'Target' in self.task:
             #targ=np.matrix(self.task['Target'],shape=np.shape(my_pos)) # Old version from 6/22/2026
@@ -142,10 +142,18 @@ class unicycleAgent(Agent): #Will use 2nd order state from states.py
         super().__init__(name,env,network,task,state)
         self.state=State2ndOrder(state)
         # self.pose=yaw
-    def nav(self,goal):
-        return self.env.nav(goal,self.pos)
+
+    def dynamics(self,controlInput,inputState=None): # DWR 6/23/2026: preliminary coding
+        if inputState is None:
+            inputState=self.state
+        qdot=v*self.state.p # Matches notation in the unicycle paper
+        pdot=omega*skewJ*self.state.p
+        return qdot,pdot
+
+    # def nav(self,goal): # DWR 6/23/2026: Not sure if it needs its own navigation function classed here or not
+    #     return self.env.nav(goal,self.pos)
     
-    def pushField(self,pos):
+    def pushField(self,pos): # To be used in the controller
         return self.env.pushField(self.pos,pos) # Not yet implemented
     
     def yawControl(self,goal):
@@ -156,6 +164,8 @@ class unicycleAgent(Agent): #Will use 2nd order state from states.py
 
     def eta(dist): # Dist is a scalar for distance from the obstacle
         epsilon = 1 # Dummy number
+        if (epsilon**2 - dist) <= 0:
+            return 0 # Avoiding div by zero glitches w/ bump function
         return np.exp(-1/(epsilon**2 - dist))/np.exp(-1/(epsilon**2)) # Epsilon is a global not yet implemented, for pushaway field width
 
     def alpha(z):
@@ -164,7 +174,7 @@ class unicycleAgent(Agent): #Will use 2nd order state from states.py
     def beta(z):
         return 1 # dummy number
 
-    def Unicycle(self): # controller for robots, not the program.
+    def Unicycle(self):
         if not(self.task['keepUpQ']):
             raise TypeError("The unicycle code does not yet support multi-agent systems.")
             # Leader agents have keepUpQ set to false

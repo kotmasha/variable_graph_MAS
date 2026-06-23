@@ -161,7 +161,7 @@ if solverType=='Euler':
 elif solverType == 'nsfPlots':
 
     flowTime = np.linspace(0, simTime, simTime*60)
-    odeSol, output_dict = odeint(net.pnpFlowMap, net.y0.flatten(), flowTime, full_output=1)
+    odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
     print(odeSol, output_dict)
 
     # Call the plotting function
@@ -170,9 +170,9 @@ elif solverType == 'nsfPlots':
     plt.title('ODE Solution for Multi-Agent Contractive PnP Controller')
     plt.show()
 
-elif solverType=="odeSolo":
+elif solverType=="odeSolo": # Needs to be fixed or removed
     flowTime=np.linspace(0,simTime,simTime*60)
-    odeSol,output_dict=odeint(net.pnpFlowMapsoloUnicycle,net.agents['Zoe'].pos.flatten(),flowTime,full_output=1)
+    odeSol,output_dict=odeint(net.pnpFlowMapsolo,net.agents['Zoe'].pos.flatten(),flowTime,full_output=1)
     # print(odeSol)
     plt.plot(odeSol[:,0],odeSol[:,1],'b--')
     plt.title('ODE Solution for Single Agent')

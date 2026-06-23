@@ -327,8 +327,9 @@ class netwk():
         if mode==0:
             self.spawnAgents()
         elif self.mode==1:
-            for name in self.agentNames: # 6/10/26 Dan code with edits by Davy. May need changes to reflect its usage in populate
-                self.agents[name]=getattr(agent,self.networkInfo['networkInfo']['Agents']['AgentInfo'][name]['Type'])(name,self.env,self,self.agentTask,self.networkInfo['networkInfo']['Agents']['AgentInfo'][name]['State']) 
+            for name in self.networkInfo['networkInfo']['Agents']['AgentInfo']:
+                self.agentTask=self.networkInfo['networkInfo']['Agents']['AgentInfo'][name]['Task']
+                self.agents[name]=getattr(agent,self.networkInfo['networkInfo']['Agents']['AgentInfo'][name]['Type'])(name,self.env,self,self.agentTask,self.networkInfo['networkInfo']['Agents']['AgentInfo'][name]['State'])
             # for name,pos in self.stateWname: # code replaced by 6/10/26 Dan and Davy code
             #     # print(name,self.task.taskList[name])
             #     #self.agents[name]=Agent(name, self.env, self,self.task.taskList[name], np.array(pos).reshape((2,1)))
