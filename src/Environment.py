@@ -67,19 +67,21 @@ class sphereworldEnv(environment):
 
     def nav(self,goal,pos): # both goal and state are assumed to be numpy column vector matrices
         # set up a qp-solve problem for the projection of the goal to the safe polygon
+        goal=np.array(goal) # DWR 6/23/2026 followup: Unfortunately, qpsolvers does not like matrices.
+        pos=np.array(pos)
         prob=qpsolvers.problem.Problem(
-            np.eye(size(goal)), # minimizing squared norm
-            np.zeros((size(goal),1)), # no linear component in this QP
+            np.eye(np.size(goal)), # minimizing squared norm
+            np.zeros((np.size(goal),1)), # no linear component in this QP
             G=self.safetyMatrix(pos), # safety constraints matrix
             h=self.safetyCoefficients(goal,pos), # safety constraints coefficients
             lb=0.5*(self.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
             ub=0.5*(self.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
         )
         #solve the QP problem
-        result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,lb=prob.lb,ub=prob.ub,solver='piqp',initvals=(state.q-goal.q))
+        result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,lb=prob.lb,ub=prob.ub,solver='piqp',initvals=(pos-goal))
         if result is None:
-            result = np.zeros((size(goal),1))
-        return goal.q+result.reshape((size(goal),1))-pos
+            result = np.zeros((np.size(goal),1))
+        return goal+result.reshape((np.size(goal),1))-pos
     
     def safetyMatrix(self,pos):
         # Computes the coefficient matrix describing the safe polytope at the point z
@@ -94,7 +96,7 @@ class sphereworldEnv(environment):
         # Computes the column vector of distances of z to the obstacle centers
         c=np.zeros((self.obstacleNum,1))
         for i in range(self.obstacleNum):
-            col = pos.reshape((size(pos),1)) - self.obstacleCenters[i,:].reshape((size(pos),1))
+            col = pos.reshape((np.size(pos),1)) - self.obstacleCenters[i,:].reshape((np.size(pos),1))
             c[i,:] = np.sqrt(col.T @ col)
             # c[i]=la.norm(state-self.obstacleCenters[i].T)
         return c     
@@ -104,7 +106,7 @@ class sphereworldEnv(environment):
         b=np.zeros((self.obstacleNum,1))
         dists=self.obstacleDist(pos)
         cons=self.safetyMatrix(pos)
-        b=b+0.5*(dists*dists-self.obstacleRadii.reshape(-1,1)*dists)+cons @ (pos-goal.reshape((size(goal),1))) 
+        b=b+0.5*(dists*dists-self.obstacleRadii.reshape(-1,1)*dists)+cons @ (pos-goal.reshape((np.size(goal),1))) 
         return b
     
     def inCircle(self,idx,idy,oc,oR):

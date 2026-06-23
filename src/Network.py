@@ -241,8 +241,8 @@ class netwk():
         maxX=lenX[0]
         for idx in range(maxX):
             for idy in range(maxX):
-                state=State(np.array([X[idx, idy], Y[idx, idy]]).reshape((2,1)))
-                goal=State(np.array(target))
+                state=np.array([X[idx, idy], Y[idx, idy]]).reshape((2,1))
+                goal=(target) # Do not convert state and goal into matrices. qpsolvers only accepts arrays
                 if self.worldType == 1:
                     navV=self.env.navfStar(goal,state)
                 elif self.worldType == 0:
@@ -264,7 +264,7 @@ class netwk():
             # obtain the state of the current agent in the loop
             a,b=self.stateVectorInfo[name]
             dydt[a:b,0]=(self.agents[name].clientOutputSim(xStack)).flatten()
-        return dydt.T
+        return dydt.flatten() # DWR 6/23/2026: Odeint threw a "ndim=2" error until I flattened it
 
     # def pnpFlowMap(self,y,t):
 

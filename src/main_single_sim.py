@@ -180,28 +180,28 @@ elif solverType=="odeSolo":
 
 elif solverType=="odeInt": #For OdeInt
     flowTime=np.linspace(0,simTime,simTime*60)
-    print(stateVector)
+    print(f"stateVector:{stateVector}")
     odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
-    print(odeSol)
+    print(f"odeSol:{odeSol}")
     # plt.plot(odeSol[:,0],odeSol[:,1],'b--')
     plot_multi_agent_trajectories(net, odeSol, flowTime)
     plt.title('ODE Solution for Multiple Agents')
     plt.show()
-    # ani=animation.FuncAnimation(
-    #     fig=net.figure,
-    #     func=updateAni,
-    #     # frames=frameCounter(Nframes,net),
-    #     frames=[net for item in range(Nframes)], 
-    #     interval=1,
-    #     # cache_frame_data=False,
-    #     save_count=Nframes,
-    # )
-    # myPath=os.path.abspath(__file__)
-    # net.plotEdgeLenghts()
+    ani=animation.FuncAnimation(
+        fig=net.figure,
+        func=updateAni,
+        # frames=frameCounter(Nframes,net),
+        frames=[net for item in range(Nframes)], 
+        interval=1,
+        # cache_frame_data=False,
+        save_count=Nframes,
+    )
+    myPath=os.path.abspath(__file__)
+    net.plotEdgeLenghts()
 
-    # # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
-    # writerVideo = animation.FFMpegWriter(fps=60) 
-    # ani.save('pnpMovie.mp4', writer=writerVideo)
+    # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
+    writerVideo = animation.FFMpegWriter(fps=60) 
+    ani.save('pnpMovie.mp4', writer=writerVideo) #figure out how to make this work, preferably without adding code specific to my computer
 
 
 
