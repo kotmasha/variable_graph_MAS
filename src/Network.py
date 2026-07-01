@@ -219,7 +219,7 @@ class netwk():
         x=np.zeros((1,self.networkStateSize))
         for name in self.agentNames:
             a,b=self.stateVectorInfo[name]
-            x[0,a:b]=x[0,a:b]+np.array(self.agents[name].state.flatten()).T
+            x[0,a:b]=x[0,a:b]+np.array(self.agents[name].state.flatten()).reshape(1,-1)
         return x
 
     def updateNetworkState(self,ns):
@@ -263,7 +263,7 @@ class netwk():
         for name in self.agents:
             # obtain the state of the current agent in the loop
             a,b=self.stateVectorInfo[name]
-            dydt[a:b,0]=(self.agents[name].clientOutputSim(xStack)).flatten()
+            dydt[a:b,0]=(self.agents[name].clientOutputSim(np.matrix(xStack))).flatten()
         return dydt.flatten() # DWR 6/23/2026: Odeint threw a "ndim=2" error until I flattened it
 
     # def pnpFlowMap(self,y,t):
@@ -377,7 +377,7 @@ class netwk():
     def pnpUpdate(self):
         vecs={}
         for name in self.graph.names:
-            vecs[name]=self.agents[name].pnp()   
+            vecs[name]=self.agents[name].computeController()   
 
         for name in self.graph.names:
             self.agents[name].translatePos(self.dt*vecs[name])
@@ -387,17 +387,17 @@ class netwk():
         self.timestart = round(self.timestart+self.dt,2)
         
         for name in self.graph.names:
-            self.verticesVisual[name].set(center=uv.col2tup(self.agents[name].pos))
+            self.verticesVisual[name].set(center=uv.col2tup(self.agents[name].state.q))
 
         if self.graph.edges != None:    
             for edge in self.graph.edges: 
-                self.edgesVisual[edge].set_xy(np.asarray(np.hstack((self.agents[edge[0]].pos,self.agents[edge[1]].pos)).T))
+                self.edgesVisual[edge].set_xy(np.asarray(np.hstack((self.agents[self.graph.names[edge[0]]].state.q,self.agents[self.graph.names[edge[1]]].state.q)).T))
         for edge in self.updatedEdges:
-            dis = self.edgeDistance(self.agents[edge[0]].pos,self.agents[edge[1]].pos)
+            dis = self.edgeDistance(self.agents[self.graph.names[edge[0]]].state.q,self.agents[self.graph.names[edge[1]]].state.q)
             print(dis)
             self.update_edge_lengths(edge,dis,self.timestart)
         for nedge in self.notEdges:
-            ndis = self.edgeDistance(self.agents[nedge[0]].pos,self.agents[nedge[1]].pos)
+            ndis = self.edgeDistance(self.agents[self.graph.names[nedge[0]]].state.q,self.agents[self.graph.names[nedge[1]]].state.q)
             self.update_nedge_lengths(nedge,ndis,self.timestart)
         if self.timestart>self.simTime:
             self.plotEdgeLenghts()

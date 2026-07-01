@@ -111,7 +111,7 @@ class fullyActuatedAgent(Agent):
             positions={}
             for name in states:
                 a,b=self.network.stateVectorInfo[name]
-                positions[name]=(states[name].pos(virtualState[a:b,0])).reshape((b-a),1)
+                positions[name]=(states[name].pos(virtualState[a:b,0])).reshape(-1,1)
 
         my_pos=self.own_state(virtualState).pos()
         # Prepare "empty" control input vector
@@ -140,21 +140,23 @@ class fullyActuatedAgent(Agent):
 class unicycleAgent(Agent): #Will use 2nd order state from states.py
     def __init__(self,name,env,network,task,state):
         super().__init__(name,env,network,task,state)
-        self.state=State2ndOrder(state)
+        self.state=State2ndOrder(np.vstack(((np.matrix(state['q'])).T,(np.matrix(state['p'])).T)))
         # self.pose=yaw
 
-    def dynamics(self,controlInput,inputState=None): # DWR 6/23/2026: preliminary coding
+    def dynamics(self,controlInput,inputState=None):
+    # Proposed inputs: controlInput is
         if inputState is None:
             inputState=self.state
-        qdot=v*self.state.p # Matches notation in the unicycle paper
-        pdot=omega*skewJ*self.state.p
-        return qdot,pdot
+        qdot=controlInput[0]*self.state.p # Matches notation in the unicycle paper
+        pdot=controlInput[1]*skewJ*self.state.p
+        return np.vstack((qdot,pdot))
 
     # def nav(self,goal): # DWR 6/23/2026: Not sure if it needs its own navigation function classed here or not
     #     return self.env.nav(goal,self.pos)
     
     def pushField(self,pos): # To be used in the controller
-        return self.env.pushField(self.pos,pos) # Not yet implemented
+        #return self.env.pushField(self.pos,pos) 
+        return np.zeros_like(pos,dtype=np.matrix) # Not yet implemented
     
     def yawControl(self,goal):
         return self.beta*np.inner(self.navSphere(goal),skewJ*self.pose)
@@ -162,30 +164,46 @@ class unicycleAgent(Agent): #Will use 2nd order state from states.py
     def translatePos(self,vec):
         self.pos=self.pos+vec
 
-    def eta(dist): # Dist is a scalar for distance from the obstacle
+    def eta(self,dist): # Dist is a scalar for distance from the obstacle
         epsilon = 1 # Dummy number
         if (epsilon**2 - dist) <= 0:
             return 0 # Avoiding div by zero glitches w/ bump function
         return np.exp(-1/(epsilon**2 - dist))/np.exp(-1/(epsilon**2)) # Epsilon is a global not yet implemented, for pushaway field width
 
-    def alpha(z):
+    def alpha(self,z):
         return 1 # dummy number
     
-    def beta(z):
+    def beta(self,z):
         return 1 # dummy number
 
-    def Unicycle(self):
-        if not(self.task['keepUpQ']):
-            raise TypeError("The unicycle code does not yet support multi-agent systems.")
-            # Leader agents have keepUpQ set to false
+    def computeController(self,virtualState=None):
+        # if self.task['KeepUpQ']:
+        #     raise TypeError("The unicycle code does not yet support multi-agent systems.")
+        
+        states=self.pollNeighborsStates() # Obtain a list of neighbors' states and reduce them to positions
+        if virtualState is None:
+            positions={name:states[name].pos() for name in states}
         else:
-            navvec=self.nav(self.pos) # This is n from the paper
-            pushvec=self.pushField(self.pos) # This is m from the paper
-            delta = 1 # dummy number
-            z = 1 # dummy number
-            velocity = (1-self.eta(delta**2))*self.alpha(z)*np.inner(navvec,self.p) + self.eta(delta**2)*np.inner(pushvec,self.p)
-            angVelocity = (1-self.eta(delta**2))*self.beta(z)*np.inner(navvec,skewJ*self.p) + self.eta(delta**2)*np.inner(pushvec,skewJ*self.p)
-        return (velocity,angVelocity)
+            positions={}
+            for name in states:
+                a,b=self.network.stateVectorInfo[name]
+                positions[name]=(states[name].pos(virtualState[a:b,0])).reshape(-1,1)
+        
+        my_pos=self.own_state(virtualState).pos()
+        pnpSummand=np.zeros_like(my_pos)
+        # Accumulating the network interaction component
+        for name in self.neighbors: # DWR 6/25/26 Try out pnpSummand and see what happens. It's not designed to do it, so don't expect greatness.
+            navvec=self.navf(positions[name],my_pos) # navvec is n from the paper
+            relpos=positions[name]-my_pos # 
+            navxi=self.network.tension_func(la.norm(relpos))*(la.norm(relpos)**2)/(0.+(relpos.T@navvec))
+            pnpSummand=pnpSummand+navvec*navxi #reordered navvec and navxi, it gave a not aligned error since navxi is a 1x1 array
+        pushvec=self.pushField(self.state.q) # This is m from the paper
+        delta = 1 # dummy number
+        z = 1 # dummy number
+        velocity = (1-self.eta(delta**2))*self.alpha(z)*np.inner(navvec.T,(self.state.p).T) + self.eta(delta**2)*np.inner(pushvec.T,(self.state.p).T)
+        angVelocity = (1-self.eta(delta**2))*self.beta(z)*np.inner(navvec.T,(skewJ*self.state.p).T) + self.eta(delta**2)*np.inner(pushvec.T,(skewJ*self.state.p).T)
+        # Note: np.inner(m1,m2) prefers row matrices. Column matrices result in a square matrix output, for some reason
+        return (velocity.item(),angVelocity.item()) # .item() extracts number out of a single element matrix
             # Notes
             #   veloc and angveloc come from the Unicycle PnP paper's feedback controller section on pg 1
             #   alpha, beta, and pushvec are not implemented yet.

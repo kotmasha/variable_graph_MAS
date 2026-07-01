@@ -15,6 +15,7 @@ from scipy.integrate import odeint
 from matplotlib.animation import FuncAnimation, PillowWriter
 from datetime import datetime
 from matplotlib.lines import Line2D
+plt.rcParams['animation.ffmpeg_path'] = 'C:\\0_Work_files\\programs\\ffmpeg\\bin\\ffmpeg.exe'
 
 # from manim import *
 current_time = datetime.now()
@@ -199,9 +200,10 @@ elif solverType=="odeInt": #For OdeInt
     myPath=os.path.abspath(__file__)
     net.plotEdgeLenghts()
 
+    raise Exception("The animation currently takes a long time to run. Comment this out if you have some time to kill.")
     # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
     writerVideo = animation.FFMpegWriter(fps=60) 
-    ani.save('pnpMovie.mp4', writer=writerVideo) #figure out how to make this work, preferably without adding code specific to my computer
+    ani.save('pnpMovie.mp4', writer=writerVideo)
 
 
 

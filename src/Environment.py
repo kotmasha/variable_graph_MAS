@@ -81,7 +81,7 @@ class sphereworldEnv(environment):
         result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,lb=prob.lb,ub=prob.ub,solver='piqp',initvals=(pos-goal))
         if result is None:
             result = np.zeros((np.size(goal),1))
-        return goal+result.reshape((np.size(goal),1))-pos
+        return np.matrix(goal+result.reshape((np.size(goal),1))-pos)
     
     def safetyMatrix(self,pos):
         # Computes the coefficient matrix describing the safe polytope at the point z
