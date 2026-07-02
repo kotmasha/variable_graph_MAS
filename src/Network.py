@@ -374,13 +374,10 @@ class netwk():
         for name in self.graph.names:
             self.agents[name].pos=self.env.generateRndPoint()
  
-    def pnpUpdate(self):
-        vecs={}
+    def pnpUpdate(self,timeStamp=None,networkState=None): # DWR 7/2/2026: "Simulation mode" written, still needs "robot mode"
         for name in self.graph.names:
-            vecs[name]=self.agents[name].computeController()   
-
-        for name in self.graph.names:
-            self.agents[name].translatePos(self.dt*vecs[name])
+            a,b=self.stateVectorInfo[name]
+            self.agents[name].setPos(networkState[a:b])  
     
     def updateVisualization(self):
         # updates the visualization data for vertices and edges
@@ -394,7 +391,7 @@ class netwk():
                 self.edgesVisual[edge].set_xy(np.asarray(np.hstack((self.agents[self.graph.names[edge[0]]].state.q,self.agents[self.graph.names[edge[1]]].state.q)).T))
         for edge in self.updatedEdges:
             dis = self.edgeDistance(self.agents[self.graph.names[edge[0]]].state.q,self.agents[self.graph.names[edge[1]]].state.q)
-            print(dis)
+            # print(dis)
             self.update_edge_lengths(edge,dis,self.timestart)
         for nedge in self.notEdges:
             ndis = self.edgeDistance(self.agents[self.graph.names[nedge[0]]].state.q,self.agents[self.graph.names[nedge[1]]].state.q)
@@ -404,7 +401,7 @@ class netwk():
             self.plotNonEdgeLenghts()
             current_time = datetime.now()
             print(current_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
-            sys.exit()
+            sys.exit() # DWR 7/1/2026: Look into this, see what is going on with this if block
 
         # self.figure.canvas.flush_events()
 

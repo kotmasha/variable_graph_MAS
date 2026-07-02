@@ -78,12 +78,13 @@ graph=graph_w_names(names,edges)
 # net=netwk(netID,graph,env,leaders,pnpParameters,agentSpawn,simTime,worldType,stateWname) #This line, and possibly others nearby, should be deleted since the network is being started up earlier
 
 
-def updateAni(content):
+def updateAni(content): # Content is assumed to be a tuple containing timestamp,networkState,net
     # update agent positions
     # content.dummyUpdate()
-    content.pnpUpdate()
+    timeStamp,networkState,net=content
+    net.pnpUpdate(timeStamp,networkState)
     # update the visualization data
-    content.updateVisualization()
+    net.updateVisualization()
 
 def plot_multi_agent_trajectories(net, odeSol, flowTime):
     num_agents = len(net.graph.names)
@@ -138,6 +139,25 @@ def plot_multi_agent_trajectories(net, odeSol, flowTime):
     net.figure.text(0.5,0.01,'MAS Simulation with Graph Maintainance',ha='center',fontsize=11)
     # Add legend to lower right corner
     ax.legend(handles=legend_elements, loc='lower right',  ncol=1,fontsize=18)
+
+def frameCull(timeData,stateData):
+    timeData=list(timeData)
+    stateData=list(stateData)
+    timeBtwFrames=1/60
+    goodTimes=[timeData[0]]
+    goodStates=[stateData[0]]
+    frameNum=1
+    for step in range(1,len(timeData)):
+        if np.floor(timeData[step-1]/timeBtwFrames)<np.floor(timeData[step]/timeBtwFrames) and frameNum<Nframes:
+            frameNum+=1
+            goodTimes.append(timeData[step])
+            goodStates.append(stateData[step])
+    return np.array(goodTimes),np.array(goodStates) # DWR 7/1/2026: Not a big fan of this array -> list -> array thing, but it's a start.
+
+def frameCounter(timeData,stateData,netObject): # 7/1/2026: input in frames is supposed to be a generator, not a list
+    for timestamp,networkState in zip(timeData,stateData): 
+        yield timestamp,networkState,netObject
+
 if solverType=='Euler':
     flowTime=np.linspace(0,simTime,simTime*60)
 
@@ -183,16 +203,18 @@ elif solverType=="odeInt": #For OdeInt
     flowTime=np.linspace(0,simTime,simTime*60)
     print(f"stateVector:{stateVector}")
     odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
-    print(f"odeSol:{odeSol}")
+    print(f"odeSol: {odeSol}")
+    odeTimeStamps=np.insert(output_dict['tcur'],0,0) # odeSol includes the starting t=0 frame, but t=0 is not included in tcur
+    odeTimeStamps,culledSol=frameCull(odeTimeStamps,odeSol)
     # plt.plot(odeSol[:,0],odeSol[:,1],'b--')
     plot_multi_agent_trajectories(net, odeSol, flowTime)
     plt.title('ODE Solution for Multiple Agents')
-    plt.show()
+    # plt.show()
     ani=animation.FuncAnimation(
         fig=net.figure,
         func=updateAni,
-        # frames=frameCounter(Nframes,net),
-        frames=[net for item in range(Nframes)], 
+        frames=frameCounter(odeTimeStamps,culledSol,net),
+        # frames=[net for item in range(Nframes)], 
         interval=1,
         # cache_frame_data=False,
         save_count=Nframes,
@@ -200,17 +222,17 @@ elif solverType=="odeInt": #For OdeInt
     myPath=os.path.abspath(__file__)
     net.plotEdgeLenghts()
 
-    raise Exception("The animation currently takes a long time to run. Comment this out if you have some time to kill.")
+    #raise Exception("The animation currently takes a long time to run. Comment this out if you have some time to kill.")
     # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
     writerVideo = animation.FFMpegWriter(fps=60) 
     ani.save('pnpMovie.mp4', writer=writerVideo)
 
 
-
-
-def frameCounter(n,obj):
-    for frame in range(n):
-        yield obj
+# DWR 7/1/2026: First, implement the frame culling "weeding out the chaff" from matlab. Then, rewrite framecounter to use odeSol to create timestamps and vectors. 
+#       The frame culling will run before that.
+# def frameCounter(timeData,stateData,netObject): # 7/1/2026: input in frames is supposed to be a generator, not a list
+#     for timestamp,networkState in zip(timeData,stateData): 
+#         yield timestamp,networkState,netObject
 
 
 

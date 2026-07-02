@@ -76,6 +76,9 @@ class Agent():
     def translatePos(self,vec):
         self.state.q=self.state.q+vec # Think about this & state/2ndorder class
     
+    def setPos(self,vec): # for plotting purposes
+        self.state.q=np.matrix(np.reshape(vec,(-1,1)))
+    
     def dynamics(self,controlInput,inputState=None): # DWR 6/17/2026: I think this is supposed to give a route to the controller computing for each agent type
         if inputState is None:
             inputState=self.state # Workaround for default value
