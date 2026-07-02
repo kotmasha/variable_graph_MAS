@@ -38,7 +38,10 @@ animationFile=data['workPath']+'pnpDemo.mp4'
 solverType=data['EnvInfo']['Interface']
 print(f"Solver type: {solverType}") # DWR: fixed typo Solber -> Solver
 runDataFile=data['workPath']+'runData.json'
+
 Nframes=10000 # number of frames in the animation
+framesPerSec=60
+
 worldType=data['EnvType']
 print(f"World type: {worldType}")
 obstacleData=data['EnvInfo']['Obstacles']
@@ -140,26 +143,23 @@ def plot_multi_agent_trajectories(net, odeSol, flowTime):
     # Add legend to lower right corner
     ax.legend(handles=legend_elements, loc='lower right',  ncol=1,fontsize=18)
 
-def frameCull(timeData,stateData):
-    timeData=list(timeData)
-    stateData=list(stateData)
-    timeBtwFrames=1/60
-    goodTimes=[timeData[0]]
-    goodStates=[stateData[0]]
-    frameNum=1
-    for step in range(1,len(timeData)):
-        if np.floor(timeData[step-1]/timeBtwFrames)<np.floor(timeData[step]/timeBtwFrames) and frameNum<Nframes:
+def frameCull(timeData,stateData,maxTime,desiredNframes):
+    mask=np.zeros(len(timeData),dtype=bool)
+    timeBtwFrames=maxTime/desiredNframes
+    frameNum=-1 #how many frames were "made" so far
+    for step in range(len(timeData)):
+        maskValue=np.floor(timeData[step]/timeBtwFrames)>frameNum
+        if maskValue:
+            mask[step]=True
             frameNum+=1
-            goodTimes.append(timeData[step])
-            goodStates.append(stateData[step])
-    return np.array(goodTimes),np.array(goodStates) # DWR 7/1/2026: Not a big fan of this array -> list -> array thing, but it's a start.
+    return timeData[mask],stateData[mask]
 
 def frameCounter(timeData,stateData,netObject): # 7/1/2026: input in frames is supposed to be a generator, not a list
     for timestamp,networkState in zip(timeData,stateData): 
         yield timestamp,networkState,netObject
 
 if solverType=='Euler':
-    flowTime=np.linspace(0,simTime,simTime*60)
+    flowTime=np.linspace(0,simTime,simTime*framesPerSec)
 
     # for timestep in flowTime:
     #     net.pnpUpdate()
@@ -176,12 +176,12 @@ if solverType=='Euler':
     )
     myPath=os.path.abspath(__file__)
     # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
-    writerVideo = animation.FFMpegWriter(fps=60) 
+    writerVideo = animation.FFMpegWriter(fps=framesPerSec) 
     ani.save('pnpMovieContractive.mp4', writer=writerVideo)
 
 elif solverType == 'nsfPlots':
 
-    flowTime = np.linspace(0, simTime, simTime*60)
+    flowTime = np.linspace(0, simTime, simTime*framesPerSec)
     odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
     print(odeSol, output_dict)
 
@@ -191,29 +191,21 @@ elif solverType == 'nsfPlots':
     plt.title('ODE Solution for Multi-Agent Contractive PnP Controller')
     plt.show()
 
-elif solverType=="odeSolo": # Needs to be fixed or removed
-    flowTime=np.linspace(0,simTime,simTime*60)
-    odeSol,output_dict=odeint(net.pnpFlowMapsolo,net.agents['Zoe'].pos.flatten(),flowTime,full_output=1)
-    # print(odeSol)
-    plt.plot(odeSol[:,0],odeSol[:,1],'b--')
-    plt.title('ODE Solution for Single Agent')
-    plt.show()
-
 elif solverType=="odeInt": #For OdeInt
-    flowTime=np.linspace(0,simTime,simTime*60)
+    flowTime=np.linspace(0,simTime,simTime*framesPerSec)
     print(f"stateVector:{stateVector}")
     odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
     print(f"odeSol: {odeSol}")
     odeTimeStamps=np.insert(output_dict['tcur'],0,0) # odeSol includes the starting t=0 frame, but t=0 is not included in tcur
-    odeTimeStamps,culledSol=frameCull(odeTimeStamps,odeSol)
+    odeTimeStamps,odeSol=frameCull(odeTimeStamps,odeSol,maxTime=simTime,desiredNframes=Nframes)
     # plt.plot(odeSol[:,0],odeSol[:,1],'b--')
-    plot_multi_agent_trajectories(net, odeSol, flowTime)
-    plt.title('ODE Solution for Multiple Agents')
+    #plot_multi_agent_trajectories(net, odeSol, flowTime)
+    #plt.title('ODE Solution for Multiple Agents')
     # plt.show()
     ani=animation.FuncAnimation(
         fig=net.figure,
         func=updateAni,
-        frames=frameCounter(odeTimeStamps,culledSol,net),
+        frames=frameCounter(odeTimeStamps,odeSol,net),
         # frames=[net for item in range(Nframes)], 
         interval=1,
         # cache_frame_data=False,
@@ -224,7 +216,7 @@ elif solverType=="odeInt": #For OdeInt
 
     #raise Exception("The animation currently takes a long time to run. Comment this out if you have some time to kill.")
     # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
-    writerVideo = animation.FFMpegWriter(fps=60) 
+    writerVideo = animation.FFMpegWriter(fps=framesPerSec) 
     ani.save('pnpMovie.mp4', writer=writerVideo)
 
 
