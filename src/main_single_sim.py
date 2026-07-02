@@ -82,14 +82,15 @@ graph=graph_w_names(names,edges)
 
 
 def updateAni(content): # Content is assumed to be a tuple containing timestamp,networkState,net
-    # update agent positions
-    # content.dummyUpdate()
     timeStamp,networkState,net=content
-    net.pnpUpdate(timeStamp,networkState)
+    # update agent state
+    net.pnpUpdate(networkState)
+    # one tick of the network clock
+    net.tick(timeStamp)
     # update the visualization data
     net.updateVisualization()
 
-def plot_multi_agent_trajectories(net, odeSol, flowTime):
+def plot_multi_agent_trajectories(net, odeSol, flowTime): #07/02 DAN G: Please update this to fit the new network state vector data structure.
     num_agents = len(net.graph.names)
     
     ax = net.visualization

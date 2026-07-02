@@ -78,7 +78,7 @@ class netwk():
         self.coopGain=int(self.pnpParameters['coopGain'])
         self.m=1/self.pnpParameters['rsafe']
         #self.leaders=self.leaderList # may want to just use the initial self.leaderList for less confusion
-        self.timestart=0.0
+        self.time=0.0
         self.worldType = 0 # dummy value to get running; Any code corresponding to this should be moved to Environment.py
         self.updatedEdges = self.cleanEdge(self.graph.edges)
         self.edgeData = {
@@ -214,6 +214,15 @@ class netwk():
             self.plotQuiver(target)
             sys.exit()
 
+
+    def tick(self,t=None):
+        if t is None:
+            self.setTime(self.time+self.dt)
+        else:
+            self.setTime(t)
+
+    def setTime(self,t):
+        self.time=t
 
     def formNetworkStateVector(self):
         x=np.zeros((1,self.networkStateSize))
@@ -374,15 +383,12 @@ class netwk():
         for name in self.graph.names:
             self.agents[name].pos=self.env.generateRndPoint()
  
-    def pnpUpdate(self,timeStamp=None,networkState=None): # DWR 7/2/2026: "Simulation mode" written, still needs "robot mode"
+    def pnpUpdate(self,networkState=None): # DWR 7/2/2026: "Simulation mode" written, still needs "robot mode"
         for name in self.graph.names:
             a,b=self.stateVectorInfo[name]
-            self.agents[name].setPos(networkState[a:b])  
+            self.agents[name].setState(networkState[a:b])  
     
-    def updateVisualization(self):
-        # updates the visualization data for vertices and edges
-        self.timestart = round(self.timestart+self.dt,2)
-        
+    def updateVisualization(self,timeStamp):        
         for name in self.graph.names:
             self.verticesVisual[name].set(center=uv.col2tup(self.agents[name].state.q))
 
@@ -392,11 +398,11 @@ class netwk():
         for edge in self.updatedEdges:
             dis = self.edgeDistance(self.agents[self.graph.names[edge[0]]].state.q,self.agents[self.graph.names[edge[1]]].state.q)
             # print(dis)
-            self.update_edge_lengths(edge,dis,self.timestart)
+            self.update_edge_lengths(edge,dis,self.time)
         for nedge in self.notEdges:
             ndis = self.edgeDistance(self.agents[self.graph.names[nedge[0]]].state.q,self.agents[self.graph.names[nedge[1]]].state.q)
-            self.update_nedge_lengths(nedge,ndis,self.timestart)
-        if self.timestart>self.simTime:
+            self.update_nedge_lengths(nedge,ndis,self.time)
+        if self.time>self.simTime:
             self.plotEdgeLenghts()
             self.plotNonEdgeLenghts()
             current_time = datetime.now()
