@@ -384,11 +384,13 @@ class netwk():
             self.agents[name].pos=self.env.generateRndPoint()
  
     def pnpUpdate(self,networkState=None): # DWR 7/2/2026: "Simulation mode" written, still needs "robot mode"
+        networkState=np.matrix(networkState).T # state.q is vertical matrix, horizontal array networkState causes problems
         for name in self.graph.names:
             a,b=self.stateVectorInfo[name]
-            self.agents[name].setState(networkState[a:b])  
+            self.agents[name].setState(networkState[a:b])
     
-    def updateVisualization(self,timeStamp):        
+    # def updateVisualization(self,timeStamp): # DWR 7/2/2026: Do we need timeStamp?
+    def updateVisualization(self):       
         for name in self.graph.names:
             self.verticesVisual[name].set(center=uv.col2tup(self.agents[name].state.q))
 

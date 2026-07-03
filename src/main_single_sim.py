@@ -90,31 +90,31 @@ def updateAni(content): # Content is assumed to be a tuple containing timestamp,
     # update the visualization data
     net.updateVisualization()
 
-def plot_multi_agent_trajectories(net, odeSol, flowTime): #07/02 DAN G: Please update this to fit the new network state vector data structure.
+def plot_multi_agent_trajectories(net, odeSol, flowTime):
     num_agents = len(net.graph.names)
     
     ax = net.visualization
     colors = plt.cm.rainbow(np.linspace(0, 1, num_agents))
     goal_x, goal_y = 9,9
     ax.plot(goal_x, goal_y, 'X', color='red', markersize=15, markeredgewidth=2, label='Goal')
+    # Plot communication graph edges
     for name in net.graph.names:
         agent_index = net.graph.vertexIndices[name]
-        x = odeSol[0, 2*agent_index]
-        y = odeSol[0, 2*agent_index + 1]
+        a,b=net.stateVectorInfo[name]
+        agentPos=odeSol[0,a:a+2]
         neighbors = net.neighbors(name)
         for neighbor in neighbors:
-            neighbor_index = net.graph.vertexIndices[neighbor]
-            nx = odeSol[0, 2*neighbor_index]
-            ny = odeSol[0, 2*neighbor_index + 1]
-            ax.plot([x, nx], [y, ny], 'k-', linewidth=1.5)  # Black lines for initial configuration
+            a,b=net.stateVectorInfo[neighbor]
+            neighborPos=odeSol[0,a:a+2] # DWR 7/2/2026: Can't remember if we have a pre-existing system for telling which part of odeSol is the position rather than heading
+            ax.plot([agentPos[0], neighborPos[0]], [agentPos[1], neighborPos[1]], 'k-', linewidth=1.5)  # Black lines for initial configuration
     # Plot trajectories
     for i, name in enumerate(net.graph.names):
         agent_index = net.graph.vertexIndices[name]
-        x = odeSol[:, 2*agent_index]
-        y = odeSol[:, 2*agent_index + 1]
-        ax.plot(x, y, '--', color=colors[i], label=f'Agent {name}', linewidth=0.95)  # Reduced line thickness
-        ax.plot(x[0], y[0], 'o', color=colors[i], markersize=8)  # Start point
-        ax.plot(x[-1], y[-1], 'o', color=colors[i], markersize=8)  # End point
+        a,b=net.stateVectorInfo[name]
+        agentPos=odeSol[:,a:a+2] # DWR 7/2/2026: Can't remember if we have a pre-existing system for telling which part of odeSol is the position rather than heading
+        ax.plot(agentPos[:,0], agentPos[:,1], '--', color=colors[i], label=f'Agent {name}', linewidth=0.95)  # Reduced line thickness
+        ax.plot(agentPos[0,0], agentPos[0,1], 'o', color=colors[i], markersize=8)  # Start point
+        ax.plot(agentPos[-1,0], agentPos[-1,1], 'o', color=colors[i], markersize=8)  # End point
 
     # Plot initial configuration with black edges between neighbors
     for name in net.graph.names:
@@ -162,9 +162,9 @@ def frameCounter(timeData,stateData,netObject): # 7/1/2026: input in frames is s
 if solverType=='Euler':
     flowTime=np.linspace(0,simTime,simTime*framesPerSec)
 
-    # for timestep in flowTime:
-    #     net.pnpUpdate()
-    #     net.updateVisualization()
+    for timestep in flowTime:
+        net.pnpUpdate()
+        net.updateVisualization()
 
     ani=animation.FuncAnimation(
         fig=net.figure,
@@ -199,10 +199,10 @@ elif solverType=="odeInt": #For OdeInt
     print(f"odeSol: {odeSol}")
     odeTimeStamps=np.insert(output_dict['tcur'],0,0) # odeSol includes the starting t=0 frame, but t=0 is not included in tcur
     odeTimeStamps,odeSol=frameCull(odeTimeStamps,odeSol,maxTime=simTime,desiredNframes=Nframes)
-    # plt.plot(odeSol[:,0],odeSol[:,1],'b--')
-    #plot_multi_agent_trajectories(net, odeSol, flowTime)
-    #plt.title('ODE Solution for Multiple Agents')
-    # plt.show()
+    plt.plot(odeSol[:,0],odeSol[:,1],'b--')
+    plot_multi_agent_trajectories(net, odeSol, flowTime)
+    plt.title('ODE Solution for Multiple Agents')
+    plt.show()
     ani=animation.FuncAnimation(
         fig=net.figure,
         func=updateAni,
@@ -214,9 +214,6 @@ elif solverType=="odeInt": #For OdeInt
     )
     myPath=os.path.abspath(__file__)
     net.plotEdgeLenghts()
-
-    #raise Exception("The animation currently takes a long time to run. Comment this out if you have some time to kill.")
-    # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
     writerVideo = animation.FFMpegWriter(fps=framesPerSec) 
     ani.save('pnpMovie.mp4', writer=writerVideo)
 
@@ -226,9 +223,3 @@ elif solverType=="odeInt": #For OdeInt
 # def frameCounter(timeData,stateData,netObject): # 7/1/2026: input in frames is supposed to be a generator, not a list
 #     for timestamp,networkState in zip(timeData,stateData): 
 #         yield timestamp,networkState,netObject
-
-
-
-
-
-
