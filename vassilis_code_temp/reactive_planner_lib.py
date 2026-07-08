@@ -426,7 +426,7 @@ def localworkspaceLIDAR2D(RobotState, RobotRadius, LIDAR):
                 m = -Rk*n # A point on the separating hyperplane
 
                 # Update the local workspace by taking its intersection with the associated halfplane
-                LW = cvxpolyxhplane(LW, m, n)
+                LW = polyxhplane(LW, m, n)
         
         # Local workspace footprint
         LocalFootprint = np.vstack((R*np.cos(LIDAR.Angle+X[2]), R*np.sin(LIDAR.Angle+X[2])))
@@ -495,7 +495,7 @@ def localfreespaceLIDAR2D(RobotState, RobotRadius, LIDAR):
                 m = -Rk*n # A point on the separating hyperplane
 
                 # Update the local freespace by taking its intersection with the associated halfplane
-                LF = cvxpolyxhplane(LF, m, n)
+                LF = polyxhplane(LF, m, n)
 
         LocalFootprint = np.vstack((R*np.cos(LIDAR.Angle+X[2]), R*np.sin(LIDAR.Angle+X[2])))
         LocalFootprint = LocalFootprint.transpose()
@@ -705,8 +705,8 @@ def diffeoTreeTriangulation(PolygonVertices, DiffeoParams):
         original_polygon = np.array([tree[-1]['center'][0], tree[-1]['vertices'][1], tree[-1]['vertices'][2], tree[-1]['vertices'][0], tree[-1]['center'][0]])
         polygon_tilde = sp.geometry.polygon.orient(Polygon(original_polygon).buffer(varepsilon, join_style=1), 1.0)
         dilation = np.vstack((polygon_tilde.exterior.coords.xy[0], polygon_tilde.exterior.coords.xy[1])).transpose()
-        intersect_1 = cvxpolyxhplane(dilation[0:-1], tree[-1]['center'][0], tree[-1]['r_center_n'][0])
-        intersect_2 = cvxpolyxhplane(intersect_1, tree[-1]['center'][0], tree[-1]['r_center_n'][1])
+        intersect_1 = polyxhplane(dilation[0:-1], tree[-1]['center'][0], tree[-1]['r_center_n'][0])
+        intersect_2 = polyxhplane(intersect_1, tree[-1]['center'][0], tree[-1]['r_center_n'][1])
         polygon_tilde_vertices = np.vstack((intersect_2,intersect_2[0]))
 
         # Compute the intersection with the workspace
@@ -781,8 +781,8 @@ def diffeoTreeTriangulation(PolygonVertices, DiffeoParams):
         original_polygon = np.array([tree[i]['center'][0], tree[i]['vertices'][1], tree[i]['vertices'][2], tree[i]['vertices'][0], tree[i]['center'][0]])
         polygon_tilde = sp.geometry.polygon.orient(Polygon(original_polygon).buffer(varepsilon, join_style=1).simplify(0.01), 1.0)
         dilation = np.vstack((polygon_tilde.exterior.coords.xy[0], polygon_tilde.exterior.coords.xy[1])).transpose()
-        intersect_1 = cvxpolyxhplane(dilation[0:-1], tree[i]['center'][0], tree[i]['r_center_n'][0])
-        intersect_2 = cvxpolyxhplane(intersect_1, tree[i]['center'][0], tree[i]['r_center_n'][1])
+        intersect_1 = polyxhplane(dilation[0:-1], tree[i]['center'][0], tree[i]['r_center_n'][0])
+        intersect_2 = polyxhplane(intersect_1, tree[i]['center'][0], tree[i]['r_center_n'][1])
         candidate_polygon_vertices = np.vstack((intersect_2,intersect_2[0]))
         candidate_polygon = Polygon(candidate_polygon_vertices)
 
