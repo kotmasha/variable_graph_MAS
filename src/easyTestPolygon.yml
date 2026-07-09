@@ -1,6 +1,8 @@
 workPath: '~/sims/variable_graph_MAS/sims/easyTest/'
-EnvType: 'sphereworldEnv'
+EnvType: 'polygonEnv'
 
+# Interface: which interface is being used for updating the state? (ODE solver---which one? Robot---which one? etc.)
+# nsfPlots for nsf plots, Euler for Euler integration, odeInt for ode integration using scipy, odeSolo for single-agent navigation by leader w/out changing other parameters
 EnvInfo:
   Interface: 'odeInt'
   WorkspaceBdry: # defines a rectangular domain with boundary parallel to the axes
@@ -10,25 +12,25 @@ EnvInfo:
     Ymin: 0
   Dim: 2 # Number of dimensions. Only 2-dimensional is implemented
 
-
-  # Interface: which interface is being used for updating the state? (ODE solver---which one? Robot---which one? etc.)
-  #            'nsfPlots' #nsfPlots for nsf plots, Euler for Euler integration, odeInt for ode integration using scipy, odeSolo for single-agent navigation by leader w/out changing other parameters
   Obstacles:
     One:
-      center: [2.5, 6.67]
-      radius: 1.
+      vertices: [[2.,6.17],[2.,7.17,],[3.,6.17],[3.,7.17]]
     Two: 
-      center: [6.67, 2.]
-      radius: 0.67
-    Three: 
-      center: [7.33, 6.67]
-      radius: 0.67
-    Four: 
-      center: [5., 9.]
-      radius: 0.58
-    Five: 
-      center: [3.33, 2.33]
-      radius: 0.56
+      vertices: [[6.,1.33],[6.,2.67],[7.33,1.33],[7.33,2.67]]
+    Three:
+      vertices: [[6.67,6.],[6.67,7.33],[8.,6.],[8.,7.33]]
+    Four:
+      vertices: [[4.5,8.5],[4.5,9.5],[5.5,8.5],[5.5,9.5]]
+    Five:
+      vertices: [[2.83,1.83],[2.83,2.83],[3.83,1.83],[3.83,2.83]]
+  
+  DiffeoParams:
+    p: 20
+    epsilon: 0.25
+    varepsilon: 0.25
+    mu_1: 0.0625 # must be roughly equal to epsilon^2, so that the switch scales almost linearly with beta
+    mu_2: 0.01 # must be small so that sigma reaches the value of sigma_beta almost immediately
+    workspace: 
 
 Network:
   netID: 'AutonomyPark'
@@ -56,7 +58,7 @@ Network:
             q: [[1.33, 1.]]
             p: [[1., 0.]]
           Task:
-            #Target: 'Goal1'
+            Target: 'Goal1'
             KeepUpQ: True
         Charlie:
           Type: "fullyActuatedAgent"
@@ -64,7 +66,7 @@ Network:
             q: [[0.67, 0.67]]
             p: [[1., 0.]]
           Task:
-            #Target: 'Goal1'
+            Target: 'Goal1'
             KeepUpQ: True
         Delta:
           Type: "fullyActuatedAgent"
@@ -72,7 +74,7 @@ Network:
             q: [[0.33, 0.33]]
             p: [[1., 0.]]
           Task:
-            #Target: 'Goal1'
+            Target: 'Goal1'
             KeepUpQ: True
         Echo:
           Type: "fullyActuatedAgent"
@@ -80,7 +82,7 @@ Network:
             q: [[1., 0.33]]
             p: [[1., 0.]]
           Task:
-            #Target: 'Goal1'
+            Target: 'Goal1'
             KeepUpQ: True
         Foxtrot:
           Type: "fullyActuatedAgent"
@@ -88,7 +90,7 @@ Network:
             q: [[1.67, 0.67]]
             p: [[1., 0.]]
           Task:
-            #Target: 'Goal1'
+            Target: 'Goal1'
             KeepUpQ: True
         Golf:
           Type: "fullyActuatedAgent"
@@ -96,7 +98,7 @@ Network:
             q: [[2.67, 1.]]
             p: [[1., 0.]]
           Task:
-            #Target: 'Goal1'
+            Target: 'Goal1'
             KeepUpQ: True
         Hotel:
           Type: "fullyActuatedAgent"

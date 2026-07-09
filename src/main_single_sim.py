@@ -42,18 +42,11 @@ runDataFile=data['workPath']+'runData.json'
 Nframes=10000 # number of frames in the animation
 framesPerSec=60
 
-worldType=data['EnvType']
-print(f"World type: {worldType}")
-obstacleData=data['EnvInfo']['Obstacles']
+print(f"World type: {data['EnvType']}")
+obstacleData=data['EnvInfo']['Obstacles'] # DWR 7/8/2026: This is not needed anywhere else so far. Could be deleted
 names=[]
 for agentName in data['Network']['networkInfo']['Agents']['AgentInfo']:
     names.append(agentName)
-# stateWnameQ=int(data['Agents']['stateWnames']) # DWR 6/15/2026: this block should probably be removed, since we want to detect if starting positions are given based on the yml file
-# agentTypes={}
-# if stateWnameQ==1:
-#     stateWname=data['Agents']['AgentInfo']  
-# else:
-#     stateWname=None
 
 # Initialize the environment
 env=getattr(Environment,data['EnvType'])(data['EnvInfo']) # DWR 6/15/26 the ** on **data[] is not necessary in this situation
@@ -78,7 +71,6 @@ else:
     edges=None
 
 graph=graph_w_names(names,edges)
-# net=netwk(netID,graph,env,leaders,pnpParameters,agentSpawn,simTime,worldType,stateWname) #This line, and possibly others nearby, should be deleted since the network is being started up earlier
 
 
 def updateAni(content): # Content is assumed to be a tuple containing timestamp,networkState,net
@@ -203,6 +195,7 @@ elif solverType=="odeInt": #For OdeInt
     plot_multi_agent_trajectories(net, odeSol, flowTime)
     plt.title('ODE Solution for Multiple Agents')
     plt.show()
+    raise Exception("Comment this line out to turn on the video")
     ani=animation.FuncAnimation(
         fig=net.figure,
         func=updateAni,
@@ -216,10 +209,3 @@ elif solverType=="odeInt": #For OdeInt
     net.plotEdgeLenghts()
     writerVideo = animation.FFMpegWriter(fps=framesPerSec) 
     ani.save('pnpMovie.mp4', writer=writerVideo)
-
-
-# DWR 7/1/2026: First, implement the frame culling "weeding out the chaff" from matlab. Then, rewrite framecounter to use odeSol to create timestamps and vectors. 
-#       The frame culling will run before that.
-# def frameCounter(timeData,stateData,netObject): # 7/1/2026: input in frames is supposed to be a generator, not a list
-#     for timestamp,networkState in zip(timeData,stateData): 
-#         yield timestamp,networkState,netObject

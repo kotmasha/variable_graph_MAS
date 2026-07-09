@@ -37,7 +37,7 @@ from collections import deque
 import numpy as np
 #import shapely as sp
 import math
-#import tripy, time, math
+import tripy
 from shapely.geometry import Point,Polygon,LinearRing,LineString
 from shapely.ops import unary_union,orient
 from operator import itemgetter
@@ -333,8 +333,8 @@ def polytriangulation(lring,workspace,touching_boundary):
 
                 # Find the 3rd point of the child triangle (that does not belong to the shared edge) and arrange the vertices so that this is the 3rd point
                 nrows, ncols = triangles[i].shape
-                dtype = {'names':['f{}'.format(j) for j in range(ncols)], 'formats':ncols * [triangles[i].dtype]}
-                set_diff = np.setdiff1d(triangles[i].view(dtype), np.array(tree[tree_index]['adj_edge'].transpose()).view(dtype))
+                dtype = {'names':['f{}'.format(j) for j in range(ncols)], 'formats':ncols * [triangles[i].dtype]} 
+                set_diff = np.setdiff1d(triangles[i].view(dtype), np.ascontiguousarray(tree[tree_index]['adj_edge'].transpose()).view(dtype))
                 third_vertex = set_diff.view(triangles[i].dtype).reshape(-1, ncols)
                 tree[tree_index]['vertices'] = np.array([tree[tree_index]['adj_edge'][1], tree[tree_index]['adj_edge'][0], third_vertex[0]]) # change the direction of adj_edge to make the child CCW again 
 

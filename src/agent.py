@@ -131,7 +131,6 @@ class fullyActuatedAgent(Agent):
         
         # Calculate the navigation-to-goal component
         if 'Target' in self.task:
-            #targ=np.matrix(self.task['Target'],shape=np.shape(my_pos)) # Old version from 6/22/2026
             targ=np.matrix(np.reshape(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']],shape=np.shape(my_pos)))
             controlInput=controlInput+self.network.leaderGain*self.navf(targ,my_pos) 
             

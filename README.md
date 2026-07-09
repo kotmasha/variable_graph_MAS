@@ -45,13 +45,13 @@ results/       # Simulation outputs
 
 **Install dependencies:**
 ```bash
-pip install numpy matplotlib scipy shapely qpsolvers descartes pyyaml
+pip install numpy matplotlib scipy shapely qpsolvers descartes pyyaml tripy
 ```
 
 **Run simulation:**
 ```bash
 cd src/
-python main_single_sim.py easyTest.yml 100
+python main_single_sim.py easyTest.yml
 ```
 Arguments: main sim runner, configuration file(yml), simulation time (seconds)
 

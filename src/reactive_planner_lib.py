@@ -135,7 +135,7 @@ def constructLIDAR2D(DataLIDAR, CutoffRange, AllowableRange, Pitch=0.):
     # Cutoff LIDAR range
     Icutoff = np.nonzero(RangeMeasurements <= CutoffRange)
     for k in Icutoff:
-    	RangeMeasurements[k] = Infinity
+        RangeMeasurements[k] = Infinity
     
     # Construct LIDAR object
     LIDAR = LIDARClass(RangeMeasurements, Range, Infinity, MinAngle, MaxAngle, Resolution)

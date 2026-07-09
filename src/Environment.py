@@ -6,6 +6,7 @@ import shapely
 import shapely.plotting
 import shapely.geometry as geom
 from shapely.ops import unary_union
+import reactive_planner_lib
 
 from Obstacle import shapelyObstacle
 # from scipy.optimize import minimize
@@ -52,8 +53,8 @@ class sphereworldEnv(environment):
         super().__init__(envInfo)
 
         self.obstacleNum=len(self.obstacleData)
-        self.obstacleCenters = [] # Prep list of obstacle centers
-        self.obstacleRadii = []  # Prep list of obstacle radii
+        self.obstacleCenters=[] # Prep list of obstacle centers
+        self.obstacleRadii=[]  # Prep list of obstacle radii
         # Loop over all the obstacles, fill the lists, and update the workspace (removing obstacles one by one)
         for ObsName in self.obstacleData:
             center=self.obstacleData[ObsName]['center']
@@ -62,8 +63,8 @@ class sphereworldEnv(environment):
             self.obstacleRadii.append(radius)
             self.workspace=shapely.difference(self.workspace,shapely.geometry.polygon.orient(shapelyObstacle.spawnSphere(center,radius),1.0))
         # Transform lists into numpy arrays
-        self.obstacleCenters = np.array(self.obstacleCenters)
-        self.obstacleRadii = np.array(self.obstacleRadii)
+        self.obstacleCenters=np.array(self.obstacleCenters)
+        self.obstacleRadii=np.array(self.obstacleRadii)
 
     def nav(self,goal,pos): # both goal and state are assumed to be numpy column vector matrices
         # set up a qp-solve problem for the projection of the goal to the safe polygon
@@ -80,7 +81,7 @@ class sphereworldEnv(environment):
         #solve the QP problem
         result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,lb=prob.lb,ub=prob.ub,solver='piqp',initvals=(pos-goal))
         if result is None:
-            result = np.zeros((np.size(goal),1))
+            result=np.zeros((np.size(goal),1))
         return np.matrix(goal+result.reshape((np.size(goal),1))-pos)
     
     def safetyMatrix(self,pos):
@@ -96,8 +97,8 @@ class sphereworldEnv(environment):
         # Computes the column vector of distances of z to the obstacle centers
         c=np.zeros((self.obstacleNum,1))
         for i in range(self.obstacleNum):
-            col = pos.reshape((np.size(pos),1)) - self.obstacleCenters[i,:].reshape((np.size(pos),1))
-            c[i,:] = np.sqrt(col.T @ col)
+            col=pos.reshape((np.size(pos),1)) - self.obstacleCenters[i,:].reshape((np.size(pos),1))
+            c[i,:]=np.sqrt(col.T @ col)
             # c[i]=la.norm(state-self.obstacleCenters[i].T)
         return c     
     
@@ -113,12 +114,12 @@ class sphereworldEnv(environment):
         return (idx-oc[0])**2 + (idy-oc[1])**2 <= oR**2
     
     def isSafe(self,idx,idy):
-        count = 0
+        count=0
         for i in range(self.obstacleNum): 
-            oc = self.obstacleCenters[i]
-            oR = self.obstacleRadii[i]
+            oc=self.obstacleCenters[i]
+            oR=self.obstacleRadii[i]
             if self.inCircle(idx,idy,oc,oR):
-                count = count + 1 # Point is inside an obstacle, not safe
+                count=count + 1 # Point is inside an obstacle, not safe
         if count > 0:
             return False
         else:
@@ -126,10 +127,10 @@ class sphereworldEnv(environment):
         
     def plotObstacles(self,viz):
         for i in range(self.obstacleNum):
-            oc = shapely.Point(self.obstacleCenters[i])
-            oR = self.obstacleRadii[i]
-            circ = oc.buffer(oR)
-            x, y = circ.exterior.xy
+            oc=shapely.Point(self.obstacleCenters[i])
+            oR=self.obstacleRadii[i]
+            circ=oc.buffer(oR)
+            x, y=circ.exterior.xy
             viz.plot(x, y, color='black')
             viz.fill(x, y, color='gray',alpha=1)
 
@@ -140,7 +141,7 @@ class sphereworldEnv(environment):
 #         super().__init__(outerbounds,obstacleData)
         
 #         self.obstacleNumPoints=360
-#         self.obstacleNum = self.obstacleData['starWorld']['obsNum']
+#         self.obstacleNum=self.obstacleData['starWorld']['obsNum']
 #         self.obstacleCenters=np.ones((self.obstacleNum,self.stateDim))
 #         self.obstacleRadii=np.ones((self.obstacleNum))
         
@@ -153,69 +154,69 @@ class sphereworldEnv(environment):
 #         # print(self.obstacleCenters,self.obstacleRadii)
 #         self.obstacleClearance=8*np.array((self.obstacleData['starWorld']['obsClearance']))
 #         print(self.obstacleClearance)
-#         angles = np.linspace(0, 2 * np.pi, self.obstacleNumPoints, endpoint=False)
-#         angles = np.append(angles, 0) 
+#         angles=np.linspace(0, 2 * np.pi, self.obstacleNumPoints, endpoint=False)
+#         angles=np.append(angles, 0) 
 #         obstacleBufferList=[]
 
 #         for ii in range(self.obstacleNum):
-#             oc = self.obstacleCenters[ii, :]
-#             radii = self.barrierCurve(ii, angles)
+#             oc=self.obstacleCenters[ii, :]
+#             radii=self.barrierCurve(ii, angles)
             
 #             # Create star-shaped obstacle polygon
-#             x, y = radii * np.cos(angles), radii * np.sin(angles)
+#             x, y=radii * np.cos(angles), radii * np.sin(angles)
 #             x += oc[0]
 #             y += oc[1]
-#             obstacle = shapely.Polygon(zip(x, y)).buffer(0)
+#             obstacle=shapely.Polygon(zip(x, y)).buffer(0)
             
 #             # Subtract obstacle from workspace
-#             self.workspace = shapely.difference(self.workspace, obstacle)
+#             self.workspace=shapely.difference(self.workspace, obstacle)
             
 #             # Create buffered region around the obstacle
-#             radii_buffer = np.sqrt(self.barrierCurve(ii, angles)**2 + self.obstacleClearance[ii]**2)
-#             x_buffer, y_buffer = radii_buffer * np.cos(angles), radii_buffer * np.sin(angles)
+#             radii_buffer=np.sqrt(self.barrierCurve(ii, angles)**2 + self.obstacleClearance[ii]**2)
+#             x_buffer, y_buffer=radii_buffer * np.cos(angles), radii_buffer * np.sin(angles)
 #             x_buffer += oc[0]
 #             y_buffer += oc[1]
             
 #             # Create obstacle buffer polygon
-#             obstacle_buffer = shapely.Polygon(zip(x_buffer, y_buffer)).buffer(0)  # Buffer set to 0 to create a polygon only
-#             # self.workspace = shapely.difference(self.workspace, obstacle_buffer)
+#             obstacle_buffer=shapely.Polygon(zip(x_buffer, y_buffer)).buffer(0)  # Buffer set to 0 to create a polygon only
+#             # self.workspace=shapely.difference(self.workspace, obstacle_buffer)
 #             obstacleBufferList.append(obstacle_buffer)
 #             # Intersect with workspace
-#             # obstacle_buffer_set = obstacle_buffer_set
+#             # obstacle_buffer_set=obstacle_buffer_set
             
 #             # Add to the union of buffers
-#             # obstacleBuffer = unary_union([obstacleBuffer, obstacle_buffer])
+#             # obstacleBuffer=unary_union([obstacleBuffer, obstacle_buffer])
 
 
 #     def plotObstacles(self,viz):
-#         angles = np.linspace(0, 2 * np.pi, self.obstacleNumPoints, endpoint=False)
-#         angles = np.append(angles, 0) 
+#         angles=np.linspace(0, 2 * np.pi, self.obstacleNumPoints, endpoint=False)
+#         angles=np.append(angles, 0) 
 #         obstacleBufferList=[]
 
 #         for ii in range(self.obstacleNum):
-#             oc = self.obstacleCenters[ii, :]
+#             oc=self.obstacleCenters[ii, :]
 
 
 #             # Create buffered region around the obstacle
-#             radii_buffer = np.sqrt(self.barrierCurve(ii, angles)**2 + self.obstacleClearance[ii]**2)
-#             x_buffer, y_buffer = radii_buffer * np.cos(angles), radii_buffer * np.sin(angles)
+#             radii_buffer=np.sqrt(self.barrierCurve(ii, angles)**2 + self.obstacleClearance[ii]**2)
+#             x_buffer, y_buffer=radii_buffer * np.cos(angles), radii_buffer * np.sin(angles)
 #             x_buffer += oc[0]
 #             y_buffer += oc[1]
             
 #             # Create obstacle buffer polygon
-#             obstacle_buffer = shapely.Polygon(zip(x_buffer, y_buffer)).buffer(0)  # Buffer set to 0 to create a polygon only
+#             obstacle_buffer=shapely.Polygon(zip(x_buffer, y_buffer)).buffer(0)  # Buffer set to 0 to create a polygon only
 #             # Plot the obstacle buffer with alpha=0.7
 #             viz.fill(x_buffer, y_buffer, alpha=0.7, facecolor='green')
-#             radii = self.barrierCurve(ii, angles)
+#             radii=self.barrierCurve(ii, angles)
             
 #             # Create star-shaped obstacle polygon
-#             x, y = radii * np.cos(angles), radii * np.sin(angles)
+#             x, y=radii * np.cos(angles), radii * np.sin(angles)
 #             x += oc[0]
 #             y += oc[1]
-#             obstacle = shapely.Polygon(zip(x, y)).buffer(0)
+#             obstacle=shapely.Polygon(zip(x, y)).buffer(0)
             
 #             # Subtract obstacle from workspace
-#             self.workspace = shapely.difference(self.workspace, obstacle)
+#             self.workspace=shapely.difference(self.workspace, obstacle)
 #             viz.fill(x, y, color='red',alpha=0.99)
 #             # viz.plot(obstacle_buffer, ax=viz, alpha=0.7, facecolor='green')
 
@@ -242,8 +243,8 @@ class sphereworldEnv(environment):
 #         # Computes the column vector of distances of z to the obstacle centers
 #         c=np.zeros((self.obstacleNum,1))
 #         for i in range(self.obstacleNum):
-#             col = state - self.obstacleCenters[i,:].reshape((2,1))
-#             c[i,:] = np.sqrt(col.T @ col)
+#             col=state - self.obstacleCenters[i,:].reshape((2,1))
+#             c[i,:]=np.sqrt(col.T @ col)
 #             # c[i]=la.norm(state-self.obstacleCenters[i].T)
 #         return c     
     
@@ -260,26 +261,26 @@ class sphereworldEnv(environment):
 #     #     # print(state,goal)
 #     #     newG=self.wksp2sph(goal)
 #     #     newState=self.wksp2sph(state)
-#     #     # A = np.linalg.det(self.wksp2sphDeriv(state))
+#     #     # A=np.linalg.det(self.wksp2sphDeriv(state))
 #     #     return np.linalg.inv(self.wksp2sphDeriv(state))*self.navfSphere(newG,newState)
     
 #     def navfStar(self, state, goal):
 #         # Ensure state and goal are column vectors
-#         state = state.reshape((2, 1))
-#         goal = goal.reshape((2, 1))
+#         state=state.reshape((2, 1))
+#         goal=goal.reshape((2, 1))
 
 #         # Transform state and goal to sphere coordinates
-#         newG = self.wksp2sph(goal)
-#         newState = self.wksp2sph(state)
+#         newG=self.wksp2sph(goal)
+#         newState=self.wksp2sph(state)
 
 #         # Calculate navigation function in sphere coordinates
-#         nav_sphere = self.navfSphere(newG, vnewState)
+#         nav_sphere=self.navfSphere(newG, vnewState)
 
 #         # Calculate the Jacobian of the workspace-to-sphere transformation
-#         J = self.wksp2sphDeriv(state)
+#         J=self.wksp2sphDeriv(state)
 
 #         # Transform the navigation vector back to workspace coordinates
-#         nav_star = np.linalg.solve(J, nav_sphere)
+#         nav_star=np.linalg.solve(J, nav_sphere)
 #         print(f'nav_star: {nav_star}')
 #         return nav_star
 
@@ -290,7 +291,7 @@ class sphereworldEnv(environment):
 #         for ii in range(self.obstacleNum):
 #             oc=self.obstacleCenters[ii,:].reshape((2,1))
 #             rad=self.obstacleRadii[ii]
-#             stitch = stitches[ii,0]
+#             stitch=stitches[ii,0]
 #             # print(p,oc)
 #             relpos=p-oc
 #             # print(relpos)
@@ -308,7 +309,7 @@ class sphereworldEnv(environment):
 #         for ii in range(self.obstacleNum):
 #             oc=self.obstacleCenters[ii,:].T
 #             rad=self.obstacleRadii[ii]
-#             stitch = stitches[ii,0]
+#             stitch=stitches[ii,0]
 #             relpos=p-oc
 #             relnorm=la.norm(relpos)
 #             D=D+(stitch*rad/relnorm)*np.eye(self.stateDim)
@@ -318,7 +319,7 @@ class sphereworldEnv(environment):
     
 #     def stich(self,i,x):
 #         epsilon=self.obstacleClearance[i]
-#         out = self.bump(epsilon-x)/self.bump(epsilon)
+#         out=self.bump(epsilon-x)/self.bump(epsilon)
 #         return out
 #     def stitchDeriv(self,i,x):
 #         epsilon=self.obstacleClearance[i]
@@ -348,7 +349,7 @@ class sphereworldEnv(environment):
 
 #                 out[ii,:]=(self.stitchDeriv(ii,self.barrier(ii,p))) @ self.barrierDeriv(ii,p)
         
-#         out[ii,:] = -np.sum(out)
+#         out[ii,:]=-np.sum(out)
 #         return out
 
     
@@ -358,12 +359,12 @@ class sphereworldEnv(environment):
 #         obsC=self.obstacleCenters[i].reshape((2,1))
 #         # print(f'check if vert: {obsC} ')
 #         # print(f'p:{p}')
-#         relpos = p - obsC
+#         relpos=p - obsC
 #         # print(relpos)
 #         rho= np.sqrt(relpos[0]**2 + relpos[1]**2)
 #         # print(f'rho:{rho}')
 #         theta=np.arctan2(relpos[1], relpos[0])
-#         r0 = self.barrierCurve(i,theta)
+#         r0=self.barrierCurve(i,theta)
 #         # print(rho**2-r0**2)
 #         return rho**2-r0**2
     
@@ -371,19 +372,19 @@ class sphereworldEnv(environment):
 
 #         obsC=self.obstacleCenters[i].reshape((2,1))
 #         # print(f'check if vert {obsC} ')
-#         obsR = self.obstacleRadii[i]
-#         relpos = p - obsC
+#         obsR=self.obstacleRadii[i]
+#         relpos=p - obsC
 #         rho= np.sqrt(relpos[0]**2 + relpos[1]**2)
 #         theta=np.arctan2(relpos[1], relpos[0])
-#         u = np.array([np.cos(theta),np.sin(theta)])
-#         v = np.array([np.sin(theta),-np.cos(theta)])
-#         r0 = self.barrierCurve(i,theta)
-#         r1 = self.barrierCurveDeriv(i,theta)
+#         u=np.array([np.cos(theta),np.sin(theta)])
+#         v=np.array([np.sin(theta),-np.cos(theta)])
+#         r0=self.barrierCurve(i,theta)
+#         r1=self.barrierCurveDeriv(i,theta)
 #         # print(2*(relpos+(r0*r1/rho)*v))
 #         return 2*(relpos+(r0*r1/rho)*v).reshape((1,2))
     
 #     def barrierCurve(self,i,th):
-#         obsR = self.obstacleRadii[i]
+#         obsR=self.obstacleRadii[i]
 #         if i ==0:
 #             nPeaks=3
 #             out=1.1*obsR+(1+np.sin(nPeaks*th))
@@ -401,7 +402,7 @@ class sphereworldEnv(environment):
     
 #     def barrierCurveDeriv(self,i,th):
 
-#         obsR = self.obstacleRadii[i]
+#         obsR=self.obstacleRadii[i]
 #         if i ==0:
 #             nPeaks=3
 #             out=nPeaks*np.cos(nPeaks*th)
@@ -471,20 +472,91 @@ class sphereworldEnv(environment):
 
 
 class polygonEnv(environment):    
-    def __init__(self):
-        obs = self.obstacleData['rectangle']
-        obsNum = int(len(obs)/4)
-        k = 0
-        self.obstacle_polygons = []  # Store obstacle polygons for distance calculations
+    def __init__(self,envInfo):
+        super().__init__(envInfo)
+        self.DiffeoParams=envInfo['DiffeoParams']
+
+        # k=0
+        # self.obstacle_polygons=[]  # Store obstacle polygons for distance calculations
+        # for ii in range(obsNum):
+        #     faa=obs[k:k+4]
+        #     obstacle_poly=shapelyObstacle.spawnPoly(faa)
+        #     self.obstacle_polygons.append(np.array(obstacle_poly.exterior.coords))
+        #     self.workspace=shapely.difference(self.workspace, shapely.geometry.polygon.orient(obstacle_poly, 1.0))
+        #     k += 4
+
+        # DWR 7/8/2026: Plan: 
+        #   1: Probably rewrite/replace above code
+        #   2: Create the polygon triangulations/trees IN INIT. We don't need to recalculate the trees every time we do the diffeomorphism
+        #   3: The obstacles in the yml should be arrays of points made by the users.
+
+        self.obstacleTrees={}
+        for obs in self.obstacleData:
+            #Vertices should be nparray Nx2
+            vertices=np.array(self.obstacleData[obs]['vertices'])
+            self.obstacleTrees[obs]=reactive_planner_lib.diffeoTreeTriangulation(vertices,self.DiffeoParams)
         
-        for ii in range(obsNum):
-            faa = obs[k:k+4]
-            obstacle_poly = shapelyObstacle.spawnPoly(faa)
-            self.obstacle_polygons.append(np.array(obstacle_poly.exterior.coords))
-            self.workspace = shapely.difference(self.workspace, shapely.geometry.polygon.orient(obstacle_poly, 1.0))
-            k += 4
+    # DWR 7/8/2026: Plan: 
+    #   1: Polygon->Sphere diffeo
+    #   2: Sphereworld nav (already done)
+    #   3: Reverse diffeo
+    #   4: return vector
+    def nav(self,goal,pos): # both goal and state are assumed to be numpy column vector matrices
+        # set up a qp-solve problem for the projection of the goal to the safe polygon
+        goal=np.array(goal) # DWR 6/23/2026 followup: Unfortunately, qpsolvers does not like matrices.
+        pos=np.array(pos)
+
+        diffeoPos=pos
+        diffeoPosD=np.eye(2)
+        diffeoPosDD=np.zeros([1,8])
+        diffeoGoal=goal
+        for obs in self.obstacleTrees:
+            #DiffeoParams should be dictionary. The question is where do we create DiffeoParams? Probably the yml.
+            TempPos,TempPosD,TempPosDD=reactive_planner_lib.polygonDiffeoConvex(diffeoPos,self.obstacleTrees[obs],self.DiffeoParams)
+
+            res0=TempPosD[0,0]*diffeoPosDD[0] + TempPosD[0,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(TempPosDD[0]*diffeoPosD[0,0] + TempPosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(TempPosDD[2]*diffeoPosD[0,0] + TempPosDD[3]*diffeoPosD[1,0])
+            res1=TempPosD[0,0]*diffeoPosDD[1] + TempPosD[0,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(TempPosDD[0]*diffeoPosD[0,1] + TempPosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(TempPosDD[2]*diffeoPosD[0,1] + TempPosDD[3]*diffeoPosD[1,1])
+            res2=TempPosD[0,0]*diffeoPosDD[2] + TempPosD[0,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(TempPosDD[0]*diffeoPosD[0,0] + TempPosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(TempPosDD[2]*diffeoPosD[0,0] + TempPosDD[3]*diffeoPosD[1,0])
+            res3=TempPosD[0,0]*diffeoPosDD[3] + TempPosD[0,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(TempPosDD[0]*diffeoPosD[0,1] + TempPosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(TempPosDD[2]*diffeoPosD[0,1] + TempPosDD[3]*diffeoPosD[1,1])
+            res4=TempPosD[1,0]*diffeoPosDD[0] + TempPosD[1,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(TempPosDD[4]*diffeoPosD[0,0] + TempPosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(TempPosDD[6]*diffeoPosD[0,0] + TempPosDD[7]*diffeoPosD[1,0])
+            res5=TempPosD[1,0]*diffeoPosDD[1] + TempPosD[1,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(TempPosDD[4]*diffeoPosD[0,1] + TempPosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(TempPosDD[6]*diffeoPosD[0,1] + TempPosDD[7]*diffeoPosD[1,1])
+            res6=TempPosD[1,0]*diffeoPosDD[2] + TempPosD[1,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(TempPosDD[4]*diffeoPosD[0,0] + TempPosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(TempPosDD[6]*diffeoPosD[0,0] + TempPosDD[7]*diffeoPosD[1,0])
+            res7=TempPosD[1,0]*diffeoPosDD[3] + TempPosD[1,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(TempPosDD[4]*diffeoPosD[0,1] + TempPosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(TempPosDD[6]*diffeoPosD[0,1] + TempPosDD[7]*diffeoPosD[1,1])
+            diffeoPosDD[0]=res0
+            diffeoPosDD[1]=res1
+            diffeoPosDD[2]=res2
+            diffeoPosDD[3]=res3
+            diffeoPosDD[4]=res4
+            diffeoPosDD[5]=res5
+            diffeoPosDD[6]=res6
+            diffeoPosDD[7]=res7
+
+            diffeoPosD=TempPosD*diffeoPosD
+            diffeoPos=TempPos
+
+            diffeoGoal,_,_=reactive_planner_lib.polygonDiffeoConvex(diffeoGoal,self.obstacleTrees[obs],DiffeoParams)
+
+
+        #Sphereworld start
+        prob=qpsolvers.problem.Problem(
+            np.eye(np.size(goal)), # minimizing squared norm
+            np.zeros((np.size(goal),1)), # no linear component in this QP
+            G=self.safetyMatrix(pos), # safety constraints matrix
+            h=self.safetyCoefficients(goal,pos), # safety constraints coefficients
+            lb=0.5*(self.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
+            ub=0.5*(self.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
+        )
+        #solve the QP problem
+        result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,lb=prob.lb,ub=prob.ub,solver='piqp',initvals=(pos-goal))
+        if result is None:
+            result=np.zeros((np.size(goal),1))
+        #Sphereworld end
+        
+        #Undo the diffeomorphism here
+        
+        return np.matrix(goal+result.reshape((np.size(goal),1))-pos)
     
-    def polydist(self, xy, p):
+    def polydist(self, xy, p): # DWR 7/8/2026: Is there a reason we can't replace this with polydist from polygeom_lib?
         """
         Computes the distance between a set of points, p, and 
         a polygon, xy, and returns the closest points on the polygon boundary.
@@ -497,40 +569,40 @@ class polygonEnv(environment):
             C  : Coordinates of the closest points on the polygon to the input points
         """
         # Convert input data into 2D arrays
-        xy = xy.reshape(-1, 2)
-        p = p.reshape(-1, 2)
+        xy=xy.reshape(-1, 2)
+        p=p.reshape(-1, 2)
          
         # Distance to empty set is infinity
         if (xy.shape[0] == 0):
-            D = np.zeros(p.shape[0])
+            D=np.zeros(p.shape[0])
             D.fill(np.inf)
-            C = np.zeros(p.shape)
+            C=np.zeros(p.shape)
             C.fill(np.inf) 
             return D, C
         
-        orientsign = 1 - 2 * self.ispolycw(xy)  # orientation of the polygon
-        numPoint = p.shape[0]  # number of points
+        orientsign=1 - 2 * self.ispolycw(xy)  # orientation of the polygon
+        numPoint=p.shape[0]  # number of points
         # Relative coordinates of polygon rims
-        xyPre = np.roll(xy, 1, axis=0)
-        dxy = xyPre - xy
-        dxyNorm = np.power(np.linalg.norm(dxy, axis=1)[:, np.newaxis], 2)
-        dxyNorm[(dxyNorm == 0)] = 1
+        xyPre=np.roll(xy, 1, axis=0)
+        dxy=xyPre - xy
+        dxyNorm=np.power(np.linalg.norm(dxy, axis=1)[:, np.newaxis], 2)
+        dxyNorm[(dxyNorm == 0)]=1
 
         # Compute distances and closest points on the polygon boundary  
-        D = np.zeros(numPoint)
-        C = np.zeros([numPoint, 2])
+        D=np.zeros(numPoint)
+        C=np.zeros([numPoint, 2])
         for k in range(numPoint):
-            w = np.sum((p[k] - xy) * dxy, axis=1)[:, np.newaxis] / dxyNorm
-            w = np.fmax(np.fmin(w, 1), 0)
-            ctemp = (1 - w) * xy + w * xyPre
-            dtemp = np.linalg.norm(p[k] - ctemp, axis=1)
-            iMin = dtemp.argmin()
-            D[k] = dtemp[iMin]
-            C[k] = ctemp[iMin]  
+            w=np.sum((p[k] - xy) * dxy, axis=1)[:, np.newaxis] / dxyNorm
+            w=np.fmax(np.fmin(w, 1), 0)
+            ctemp=(1 - w) * xy + w * xyPre
+            dtemp=np.linalg.norm(p[k] - ctemp, axis=1)
+            iMin=dtemp.argmin()
+            D[k]=dtemp[iMin]
+            C[k]=ctemp[iMin]  
         
         return D, C
     
-    def ispolycw(self, xy):
+    def ispolycw(self, xy): # DWR 7/8/2026: Is only used in this version of polydist, which we are not sure we need.
         """
         Determines if the vertices, xy, of a non-self-intersecting polygon 
         are in clockwise order based on the signed area of the polygon.
@@ -542,7 +614,7 @@ class polygonEnv(environment):
         """
         return (self.polysignarea(xy) <= 0)
     
-    def polysignarea(self, xy):
+    def polysignarea(self, xy): # DWR 7/8/2026: Can probably be replaced with polysignedarea in polygeom_lib
         """
         Determines the signed area of a non-self-intersecting polygon with vertices xy
         
@@ -551,17 +623,17 @@ class polygonEnv(environment):
         Output:
             area : Signed area of the polygon
         """
-        xy = xy.reshape(-1, 2)  # Convert the input data into a 2D array 
-        numVertex = xy.shape[0]  # Number of vertices
-        area = 0.0
+        xy=xy.reshape(-1, 2)  # Convert the input data into a 2D array 
+        numVertex=xy.shape[0]  # Number of vertices
+        area=0.0
         for ck in range(0, numVertex):
-            cn = (ck + 1) % numVertex
-            area = area + np.cross(xy[ck], xy[cn])
-        area = 0.5 * area
+            cn=(ck + 1) % numVertex
+            area=area + np.cross(xy[ck], xy[cn])
+        area=0.5 * area
 
         return area
     
-    def get_distance_to_nearest_obstacle(self, state):
+    def get_distance_to_nearest_obstacle(self, state): # Can probably be removed too
         """
         Calculates the minimum distance from a given state to any obstacle in the environment.
         
@@ -571,19 +643,19 @@ class polygonEnv(environment):
             min_dist : Minimum distance to the nearest obstacle
             nearest_point : Coordinates of the nearest point on the obstacle
         """
-        state = np.array(state).reshape(1, 2)  # Ensure state is in correct shape
+        state=np.array(state).reshape(1, 2)  # Ensure state is in correct shape
         
-        min_dist = float('inf')
-        nearest_point = None
+        min_dist=float('inf')
+        nearest_point=None
         
         for obstacle_poly in self.obstacle_polygons:
             # Calculate distance to this obstacle
-            distances, closest_points = self.polydist(obstacle_poly, state)
+            distances, closest_points=self.polydist(obstacle_poly, state)
             
             # Check if this is the closest obstacle so far
             if distances[0] < min_dist:
-                min_dist = distances[0]
-                nearest_point = closest_points[0]
+                min_dist=distances[0]
+                nearest_point=closest_points[0]
         
         return min_dist, nearest_point
     # \nRadius of\ncommunication=3m
