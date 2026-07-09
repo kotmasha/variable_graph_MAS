@@ -92,7 +92,7 @@ def polydist(poly, pts):
         D  : Distance between points and the polygon 
         C  : Coordinates of points on the polygon boundary closest to the input points
     """
-    if pts==[]:  #if no points are provided, then distances/projections lists are empty
+    if np.size(pts)==0:  #if no points are provided, then distances/projections lists are empty
         return np.array([]),np.array([])
     elif poly.is_empty:   # Distance to empty set is infinity
         D = np.zeros(len(pts))

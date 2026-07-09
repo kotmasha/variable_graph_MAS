@@ -495,6 +495,7 @@ class polygonEnv(environment):
             #Vertices should be nparray Nx2
             vertices=np.array(self.obstacleData[obs]['vertices'])
             self.obstacleTrees[obs]=reactive_planner_lib.diffeoTreeTriangulation(vertices,self.DiffeoParams)
+            #Note: DiffeoTreeTriangulation doesn't do augmented_vertices as a property of the tree, which is causing problems
         
     # DWR 7/8/2026: Plan: 
     #   1: Polygon->Sphere diffeo
