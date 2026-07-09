@@ -509,19 +509,18 @@ class polygonEnv(environment):
         diffeoPos=pos
         diffeoPosD=np.eye(2)
         diffeoPosDD=np.zeros([1,8])
-        diffeoGoal=goal
         for obs in self.obstacleTrees:
             #DiffeoParams should be dictionary. The question is where do we create DiffeoParams? Probably the yml.
-            TempPos,TempPosD,TempPosDD=reactive_planner_lib.polygonDiffeoConvex(diffeoPos,self.obstacleTrees[obs],self.DiffeoParams)
+            spherePos,spherePosD,spherePosDD=reactive_planner_lib.polygonDiffeoConvex(diffeoPos,self.obstacleTrees[obs],self.DiffeoParams)
 
-            res0=TempPosD[0,0]*diffeoPosDD[0] + TempPosD[0,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(TempPosDD[0]*diffeoPosD[0,0] + TempPosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(TempPosDD[2]*diffeoPosD[0,0] + TempPosDD[3]*diffeoPosD[1,0])
-            res1=TempPosD[0,0]*diffeoPosDD[1] + TempPosD[0,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(TempPosDD[0]*diffeoPosD[0,1] + TempPosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(TempPosDD[2]*diffeoPosD[0,1] + TempPosDD[3]*diffeoPosD[1,1])
-            res2=TempPosD[0,0]*diffeoPosDD[2] + TempPosD[0,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(TempPosDD[0]*diffeoPosD[0,0] + TempPosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(TempPosDD[2]*diffeoPosD[0,0] + TempPosDD[3]*diffeoPosD[1,0])
-            res3=TempPosD[0,0]*diffeoPosDD[3] + TempPosD[0,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(TempPosDD[0]*diffeoPosD[0,1] + TempPosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(TempPosDD[2]*diffeoPosD[0,1] + TempPosDD[3]*diffeoPosD[1,1])
-            res4=TempPosD[1,0]*diffeoPosDD[0] + TempPosD[1,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(TempPosDD[4]*diffeoPosD[0,0] + TempPosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(TempPosDD[6]*diffeoPosD[0,0] + TempPosDD[7]*diffeoPosD[1,0])
-            res5=TempPosD[1,0]*diffeoPosDD[1] + TempPosD[1,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(TempPosDD[4]*diffeoPosD[0,1] + TempPosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(TempPosDD[6]*diffeoPosD[0,1] + TempPosDD[7]*diffeoPosD[1,1])
-            res6=TempPosD[1,0]*diffeoPosDD[2] + TempPosD[1,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(TempPosDD[4]*diffeoPosD[0,0] + TempPosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(TempPosDD[6]*diffeoPosD[0,0] + TempPosDD[7]*diffeoPosD[1,0])
-            res7=TempPosD[1,0]*diffeoPosDD[3] + TempPosD[1,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(TempPosDD[4]*diffeoPosD[0,1] + TempPosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(TempPosDD[6]*diffeoPosD[0,1] + TempPosDD[7]*diffeoPosD[1,1])
+            res0=spherePosD[0,0]*diffeoPosDD[0] + spherePosD[0,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(spherePosDD[0]*diffeoPosD[0,0] + spherePosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(spherePosDD[2]*diffeoPosD[0,0] + spherePosDD[3]*diffeoPosD[1,0])
+            res1=spherePosD[0,0]*diffeoPosDD[1] + spherePosD[0,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(spherePosDD[0]*diffeoPosD[0,1] + spherePosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(spherePosDD[2]*diffeoPosD[0,1] + spherePosDD[3]*diffeoPosD[1,1])
+            res2=spherePosD[0,0]*diffeoPosDD[2] + spherePosD[0,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(spherePosDD[0]*diffeoPosD[0,0] + spherePosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(spherePosDD[2]*diffeoPosD[0,0] + spherePosDD[3]*diffeoPosD[1,0])
+            res3=spherePosD[0,0]*diffeoPosDD[3] + spherePosD[0,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(spherePosDD[0]*diffeoPosD[0,1] + spherePosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(spherePosDD[2]*diffeoPosD[0,1] + spherePosDD[3]*diffeoPosD[1,1])
+            res4=spherePosD[1,0]*diffeoPosDD[0] + spherePosD[1,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(spherePosDD[4]*diffeoPosD[0,0] + spherePosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(spherePosDD[6]*diffeoPosD[0,0] + spherePosDD[7]*diffeoPosD[1,0])
+            res5=spherePosD[1,0]*diffeoPosDD[1] + spherePosD[1,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(spherePosDD[4]*diffeoPosD[0,1] + spherePosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(spherePosDD[6]*diffeoPosD[0,1] + spherePosDD[7]*diffeoPosD[1,1])
+            res6=spherePosD[1,0]*diffeoPosDD[2] + spherePosD[1,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(spherePosDD[4]*diffeoPosD[0,0] + spherePosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(spherePosDD[6]*diffeoPosD[0,0] + spherePosDD[7]*diffeoPosD[1,0])
+            res7=spherePosD[1,0]*diffeoPosDD[3] + spherePosD[1,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(spherePosDD[4]*diffeoPosD[0,1] + spherePosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(spherePosDD[6]*diffeoPosD[0,1] + spherePosDD[7]*diffeoPosD[1,1])
             diffeoPosDD[0]=res0
             diffeoPosDD[1]=res1
             diffeoPosDD[2]=res2
@@ -531,30 +530,19 @@ class polygonEnv(environment):
             diffeoPosDD[6]=res6
             diffeoPosDD[7]=res7
 
-            diffeoPosD=TempPosD*diffeoPosD
-            diffeoPos=TempPos
+            diffeoPosD=spherePosD*diffeoPosD
+            diffeoPos=spherePos
 
-            diffeoGoal,_,_=reactive_planner_lib.polygonDiffeoConvex(diffeoGoal,self.obstacleTrees[obs],DiffeoParams)
+            # compute the goal in sphere world:
+            sphereGoal,_,_=reactive_planner_lib.polygonDiffeoConvex(goal,self.obstacleTrees[obs],self.DiffeoParams)
 
+        # compute the navigation field value in sphere world:
+        sphereNavField=self.sphereWorld.nav(sphereGoal,spherePos)
 
-        #Sphereworld start
-        prob=qpsolvers.problem.Problem(
-            np.eye(np.size(goal)), # minimizing squared norm
-            np.zeros((np.size(goal),1)), # no linear component in this QP
-            G=self.safetyMatrix(pos), # safety constraints matrix
-            h=self.safetyCoefficients(goal,pos), # safety constraints coefficients
-            lb=0.5*(self.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
-            ub=0.5*(self.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
-        )
-        #solve the QP problem
-        result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,lb=prob.lb,ub=prob.ub,solver='piqp',initvals=(pos-goal))
-        if result is None:
-            result=np.zeros((np.size(goal),1))
-        #Sphereworld end
-        
-        #Undo the diffeomorphism here
-        
-        return np.matrix(goal+result.reshape((np.size(goal),1))-pos)
+        # compute the pull-back of sphereNavField to the real world:
+        navField=
+
+        return navField
     
     def polydist(self, xy, p): # DWR 7/8/2026: Is there a reason we can't replace this with polydist from polygeom_lib?
         """
