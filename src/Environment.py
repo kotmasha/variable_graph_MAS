@@ -495,7 +495,12 @@ class polygonEnv(environment):
             #Vertices should be nparray Nx2
             vertices=np.array(self.obstacleData[obs]['vertices'])
             self.obstacleTrees[obs]=reactive_planner_lib.diffeoTreeTriangulation(vertices,self.DiffeoParams)
-        
+
+        # Construct the corresponding sphere world environment
+        # 1. construct sphereWorldParams
+        # 2. call the sphereWorldEnv constructor
+        self.sphereWorld=sphereworldEnv(sphereWorldParams)
+
     # DWR 7/8/2026: Plan: 
     #   1: Polygon->Sphere diffeo
     #   2: Sphereworld nav (already done)
@@ -539,10 +544,8 @@ class polygonEnv(environment):
         # compute the navigation field value in sphere world:
         sphereNavField=self.sphereWorld.nav(sphereGoal,spherePos)
 
-        # compute the pull-back of sphereNavField to the real world:
-        navField=
-
-        return navField
+        # compute and return the pull-back of sphereNavField to the real world:
+        return np.matmul(np.linalg.inv(spherePosD),sphereNavField)
     
     def polydist(self, xy, p): # DWR 7/8/2026: Is there a reason we can't replace this with polydist from polygeom_lib?
         """

@@ -30,7 +30,6 @@ EnvInfo:
     varepsilon: 0.25
     mu_1: 0.0625 # must be roughly equal to epsilon^2, so that the switch scales almost linearly with beta
     mu_2: 0.01 # must be small so that sigma reaches the value of sigma_beta almost immediately
-    workspace: [[0.,0.],[0.,10.],[10.,10.],[10.,0.]] # The counterclockwise (or clockwise?) order is important here
 
 Network:
   netID: 'AutonomyPark'
