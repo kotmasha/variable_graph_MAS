@@ -730,7 +730,7 @@ def diffeoTreeTriangulation(PolygonVertices, DiffeoParams):
         # Start with the root and find the center and the radius
         root_coords = tree[-1]['vertices'].transpose()
         tree[-1]['center'] = np.array([[sum(root_coords[0])/len(root_coords[0]), sum(root_coords[1])/len(root_coords[1])]])
-        D, closest_point = polydist(tree[-1]['vertices'], tree[-1]['center'])
+        D, closest_point = polydist(Polygon(tree[-1]['vertices']), [Point(tree[-1]['center'])])
         tree[-1]['radius'] = 0.8*D[0]
 
         # Compute the tangent and normal vectors of the root triangle
@@ -768,8 +768,8 @@ def diffeoTreeTriangulation(PolygonVertices, DiffeoParams):
         median_point = 0.5*np.array([[tree[i]['adj_edge'][1][0]+tree[i]['adj_edge'][0][0], tree[i]['adj_edge'][1][1]+tree[i]['adj_edge'][0][1]]])
         median_ray = np.array([[median_point[0][0]-tree[i]['vertices'][2][0], median_point[0][1]-tree[i]['vertices'][2][1]]])
         median_ray = median_ray/np.linalg.norm(median_ray[0])
-        intersection_point = polyxray(tree[tree[i]['predecessor']]['vertices'], median_point[0], median_ray[0]) # offset median point by a little bit to avoid numerical problems
-        tree[i]['center'] = np.array([[0.2*median_point[0][0]+0.8*intersection_point[0], 0.2*median_point[0][1]+0.8*intersection_point[1]]])
+        intersection_point = polyxray(Polygon(tree[tree[i]['predecessor']]['vertices']), Point(median_point[0]), median_ray[0]) # offset median point by a little bit to avoid numerical problems
+        tree[i]['center'] = np.array([[0.2*median_point[0][0]+0.8*intersection_point.x, 0.2*median_point[0][1]+0.8*intersection_point.y]])
 
         # Find the remaining tangents and normals from vertices 0 and 1 to the center
         tree[i]['r_center_t'] = (tree[i]['center'][0]-tree[i]['vertices'][0])/np.linalg.norm(tree[i]['center'][0]-tree[i]['vertices'][0])
@@ -781,9 +781,10 @@ def diffeoTreeTriangulation(PolygonVertices, DiffeoParams):
         original_polygon = np.array([tree[i]['center'][0], tree[i]['vertices'][1], tree[i]['vertices'][2], tree[i]['vertices'][0], tree[i]['center'][0]])
         polygon_tilde = sp.geometry.polygon.orient(Polygon(original_polygon).buffer(varepsilon, join_style=1).simplify(0.01), 1.0)
         dilation = np.vstack((polygon_tilde.exterior.coords.xy[0], polygon_tilde.exterior.coords.xy[1])).transpose()
-        intersect_1 = polyxhplane(dilation[0:-1], tree[i]['center'][0], tree[i]['r_center_n'][0])
-        intersect_2 = polyxhplane(intersect_1, tree[i]['center'][0], tree[i]['r_center_n'][1])
-        candidate_polygon_vertices = np.vstack((intersect_2,intersect_2[0]))
+        intersect_1 = polyxhplane(Polygon(dilation[0:-1]), Point(tree[i]['center'][0]), tree[i]['r_center_n'][0])
+        intersect_2 = polyxhplane(intersect_1, Point(tree[i]['center'][0]), tree[i]['r_center_n'][1])
+        #candidate_polygon_vertices = np.vstack((intersect_2,intersect_2[0])) #DWR 7/8/2026: Not sure if the intent is correct here. Seems odd to use the same pt twice in a polygon.
+        candidate_polygon_vertices = np.vstack((np.array(intersect_2.exterior.coords),np.array(intersect_2.exterior.coords)[0]))
         candidate_polygon = Polygon(candidate_polygon_vertices)
 
         # Check for collisions with all the triangles that will succeed i in the diffeomorphism construction except for its parent
@@ -825,7 +826,7 @@ def diffeoTreeTriangulation(PolygonVertices, DiffeoParams):
         for j in range(1,vertices_to_consider.shape[0]-1):
             tree[i]['r_tilde_t'] = np.vstack((tree[i]['r_tilde_t'],(vertices_to_consider[j+1]-vertices_to_consider[j])/np.linalg.norm(vertices_to_consider[j+1]-vertices_to_consider[j])))
             tree[i]['r_tilde_n'] = np.vstack((tree[i]['r_tilde_n'],np.array([-tree[i]['r_tilde_t'][j][1],tree[i]['r_tilde_t'][j][0]])))
-        
+    
     return tree
 
 
@@ -1069,7 +1070,7 @@ def diffeoTreeConvex(PolygonVertices, DiffeoParams):
         tree[i]['augmented_vertices'] = np.vstack((tree[i]['vertices'][0], tree[i]['center'], tree[i]['vertices'][1:]))
         tree[i]['r_t'] = np.vstack((tree[i]['r_center_t'][0], tree[i]['r_center_t'][1], tree[i]['r_t'][1:]))
         tree[i]['r_n'] = np.vstack((tree[i]['r_center_n'][0], tree[i]['r_center_n'][1], tree[i]['r_n'][1:]))
-        
+
     return tree
 
 
