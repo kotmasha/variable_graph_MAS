@@ -513,7 +513,7 @@ class polygonEnv(environment):
         diffeoGoal=goal
         for obs in self.obstacleTrees:
             #DiffeoParams should be dictionary. The question is where do we create DiffeoParams? Probably the yml.
-            TempPos,TempPosD,TempPosDD=reactive_planner_lib.polygonDiffeoConvex(diffeoPos,self.obstacleTrees[obs],self.DiffeoParams)
+            TempPos,TempPosD,TempPosDD=reactive_planner_lib.polygonDiffeoTriangulation(diffeoPos,self.obstacleTrees[obs],self.DiffeoParams)
 
             res0=TempPosD[0,0]*diffeoPosDD[0] + TempPosD[0,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(TempPosDD[0]*diffeoPosD[0,0] + TempPosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(TempPosDD[2]*diffeoPosD[0,0] + TempPosDD[3]*diffeoPosD[1,0])
             res1=TempPosD[0,0]*diffeoPosDD[1] + TempPosD[0,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(TempPosDD[0]*diffeoPosD[0,1] + TempPosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(TempPosDD[2]*diffeoPosD[0,1] + TempPosDD[3]*diffeoPosD[1,1])
@@ -535,7 +535,7 @@ class polygonEnv(environment):
             diffeoPosD=TempPosD*diffeoPosD
             diffeoPos=TempPos
 
-            diffeoGoal,_,_=reactive_planner_lib.polygonDiffeoConvex(diffeoGoal,self.obstacleTrees[obs],DiffeoParams)
+            diffeoGoal,_,_=reactive_planner_lib.polygonDiffeoTriangulation(diffeoGoal,self.obstacleTrees[obs],self.DiffeoParams)
 
 
         #Sphereworld start
