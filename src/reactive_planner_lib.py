@@ -636,13 +636,14 @@ def localgoal_angularLIDAR2D(RobotState, LF, Goal):
     return LGA2
 
 
-def diffeoTreeTriangulation(PolygonVertices, DiffeoParams):
+def diffeoTreeTriangulation(PolygonVertices, DiffeoParams, workspace):
     """
     Function that calculates the triangulation tree of a polygon and augments it with properties used in semantic navigation
 
     Input:
         1) PolygonVertices: Vertex Coordinates of input polygon - Nx2 numpy.array (start and end vertices must be the same)
         2) DiffeoParams: Options for the diffeomorphism construction
+        3) workspace: Vertex Coordinates of workspace - Nx2 numpy.array(start and end vertices must be the same)
     
     Output:
         1) tree: Modified tree with added properties
@@ -663,7 +664,6 @@ def diffeoTreeTriangulation(PolygonVertices, DiffeoParams):
     """
     # Unpack diffeomorphism parameters
     varepsilon = DiffeoParams['varepsilon']
-    workspace = DiffeoParams['workspace']
 
     # Check if the polygon intersects the workspace boundary
     if Polygon(PolygonVertices).intersects(LineString(workspace)):
@@ -1553,7 +1553,6 @@ def outsideImplicitTriangle(Position, Triangle, DiffeoParams):
         hyperplane_1 = np.dot(Position[0]-Triangle['vertices'][2],Triangle['r_n'][1])
         hyperplane_2 = np.dot(Position[0]-Triangle['vertices'][2],Triangle['r_n'][2])
         hyperplane_3 = np.dot(Position[0]-Triangle['vertices'][0],Triangle['r_n'][0])
-
         # Compute the R-function
         hyperplane_12 = hyperplane_1 + hyperplane_2 - (hyperplane_1**p+hyperplane_2**p)**(1/p)
         hyperplane_123 = hyperplane_12 + hyperplane_3 - (hyperplane_12**p+hyperplane_3**p)**(1/p)

@@ -252,9 +252,9 @@ class netwk():
             for idy in range(maxX):
                 state=np.array([X[idx, idy], Y[idx, idy]]).reshape((2,1))
                 goal=(target) # Do not convert state and goal into matrices. qpsolvers only accepts arrays
-                if self.worldType == 1:
-                    navV=self.env.navfStar(goal,state)
-                elif self.worldType == 0:
+                if self.env.quiverObsCheck(np.array([idx,idy])):
+                    navV=np.matrix([0,0]).T
+                else:
                     navV=self.env.nav(goal,state)
                 U[idx,idy]=navV[0,0]
                 V[idx,idy]=navV[1,0]

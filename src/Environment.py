@@ -11,6 +11,7 @@ import reactive_planner_lib
 from Obstacle import shapelyObstacle
 # from scipy.optimize import minimize
 import qpsolvers
+import math
 # import cvxopt
 import quadprog
 import sys
@@ -475,6 +476,14 @@ class polygonEnv(environment):
     def __init__(self,envInfo):
         super().__init__(envInfo)
         self.DiffeoParams=envInfo['DiffeoParams']
+        Xmin=envInfo['WorkspaceBdry']['Xmin']
+        Xmax=envInfo['WorkspaceBdry']['Xmax']
+        Ymin=envInfo['WorkspaceBdry']['Ymin']
+        Ymax=envInfo['WorkspaceBdry']['Ymax']
+        self.workspaceBounds=[[Xmin,Ymin],[Xmax,Ymin],[Xmax,Ymax],[Xmin,Ymax],[Xmin,Ymin]]
+        #For use in visualisation:
+        self.PolyList=shapely.geometry.MultiPolygon([shapely.geometry.Polygon(self.obstacleData[obs]['vertices']) for obs in self.obstacleData])
+        self.counter=0
 
         # k=0
         # self.obstacle_polygons=[]  # Store obstacle polygons for distance calculations
@@ -486,37 +495,39 @@ class polygonEnv(environment):
         #     k += 4
 
         # DWR 7/8/2026: Plan: 
-        #   1: Probably rewrite/replace above code
+        #   1: Maybe rewrite/replace above code
         #   2: Create the polygon triangulations/trees IN INIT. We don't need to recalculate the trees every time we do the diffeomorphism
         #   3: The obstacles in the yml should be arrays of points made by the users.
 
+        self.sphereWorldParams=envInfo
         self.obstacleTrees={}
         for obs in self.obstacleData:
             #Vertices should be nparray Nx2
             vertices=np.array(self.obstacleData[obs]['vertices'])
-            self.obstacleTrees[obs]=reactive_planner_lib.diffeoTreeTriangulation(vertices,self.DiffeoParams)
+            self.obstacleTrees[obs]=reactive_planner_lib.diffeoTreeTriangulation(vertices,self.DiffeoParams,self.workspaceBounds)
+            self.sphereWorldParams['Obstacles'][obs]['center']=self.obstacleTrees[obs][-1]['center']
+            self.sphereWorldParams['Obstacles'][obs]['radius']=self.obstacleTrees[obs][-1]['radius']
 
         # Construct the corresponding sphere world environment
         # 1. construct sphereWorldParams
         # 2. call the sphereWorldEnv constructor
-        self.sphereWorld=sphereworldEnv(sphereWorldParams)
+        self.sphereWorld=sphereworldEnv(self.sphereWorldParams)
 
     # DWR 7/8/2026: Plan: 
     #   1: Polygon->Sphere diffeo
     #   2: Sphereworld nav (already done)
     #   3: Reverse diffeo
     #   4: return vector
-    def nav(self,goal,pos): # both goal and state are assumed to be numpy column vector matrices
-        # set up a qp-solve problem for the projection of the goal to the safe polygon
-        goal=np.array(goal) # DWR 6/23/2026 followup: Unfortunately, qpsolvers does not like matrices.
-        pos=np.array(pos)
+    def nav(self,goal,pos):
+        goal=np.array(goal).reshape(1,-1)
+        pos=np.array(pos).reshape(1,-1)
 
         diffeoPos=pos
         diffeoPosD=np.eye(2)
-        diffeoPosDD=np.zeros([1,8])
+        diffeoPosDD=np.zeros([1,8])[0]
         for obs in self.obstacleTrees:
             #DiffeoParams should be dictionary. The question is where do we create DiffeoParams? Probably the yml.
-            spherePos,spherePosD,spherePosDD=reactive_planner_lib.polygonDiffeoConvex(diffeoPos,self.obstacleTrees[obs],self.DiffeoParams)
+            spherePos,spherePosD,spherePosDD=reactive_planner_lib.polygonDiffeoTriangulation(diffeoPos,self.obstacleTrees[obs],self.DiffeoParams)
 
             res0=spherePosD[0,0]*diffeoPosDD[0] + spherePosD[0,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(spherePosDD[0]*diffeoPosD[0,0] + spherePosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(spherePosDD[2]*diffeoPosD[0,0] + spherePosDD[3]*diffeoPosD[1,0])
             res1=spherePosD[0,0]*diffeoPosDD[1] + spherePosD[0,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(spherePosDD[0]*diffeoPosD[0,1] + spherePosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(spherePosDD[2]*diffeoPosD[0,1] + spherePosDD[3]*diffeoPosD[1,1])
@@ -539,13 +550,24 @@ class polygonEnv(environment):
             diffeoPos=spherePos
 
             # compute the goal in sphere world:
-            sphereGoal,_,_=reactive_planner_lib.polygonDiffeoConvex(goal,self.obstacleTrees[obs],self.DiffeoParams)
+            sphereGoal,_,_=reactive_planner_lib.polygonDiffeoTriangulation(goal,self.obstacleTrees[obs],self.DiffeoParams)
 
         # compute the navigation field value in sphere world:
-        sphereNavField=self.sphereWorld.nav(sphereGoal,spherePos)
+        sphereNavField=self.sphereWorld.nav(sphereGoal.transpose(),spherePos.transpose())
 
         # compute and return the pull-back of sphereNavField to the real world:
         return np.matmul(np.linalg.inv(spherePosD),sphereNavField)
+    
+    def plotObstacles(self,viz):
+        for obs in self.obstacleData:
+            poly=shapely.geometry.Polygon(self.obstacleData[obs]['vertices'])
+            poly=shapely.geometry.polygon.orient(poly,1.0)
+            x, y=poly.exterior.xy
+            viz.plot(x, y, color='black')
+            viz.fill(x, y, color='gray',alpha=1)
+    
+    def quiverObsCheck(self,pos):
+        return self.PolyList.contains(shapely.geometry.Point(pos))
     
     def polydist(self, xy, p): # DWR 7/8/2026: Is there a reason we can't replace this with polydist from polygeom_lib?
         """

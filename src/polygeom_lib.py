@@ -38,6 +38,7 @@ import numpy as np
 #import shapely as sp
 import math
 import tripy
+import shapely
 from shapely.geometry import Point,Polygon,LinearRing,LineString
 from shapely.ops import unary_union,orient
 from operator import itemgetter
@@ -210,9 +211,13 @@ def polyxray(poly,bpt,vec):
     elif isinstance(rayXpoly,Point):
         return rayXpoly
     else:
-        rayXpoly_pts=np.concatenate([np.array(geom.coords) for geom in rayXpoly.geoms])
-        proj=lambda x: np.inner(x-bptnp,vec)
-        return Point(rayXpoly_pts[np.argmin(proj(rayXpoly_pts))])
+        rayXpoly_pts=list(rayXpoly.geoms)
+        rayXpoly_pts.remove(bpt)
+        return(rayXpoly_pts[0]) # DWR 7/10/2026: After fixing the [nan nan] issue, rayXpoly turned into a multiPoint instead of a linestring
+        # cond=lambda geom: not(shapely.equals_exact(geom,bpt,tolerance=0.01))
+        # rayXpoly_pts=list(filter(cond,shapely.get_point(rayXpoly,[0,len(list(rayXpoly.geoms))])))
+        # proj=lambda x: np.inner(x.coords[0]-bptnp,vec)
+        # return Point(rayXpoly_pts[np.argmin(np.array(list(map(proj,rayXpoly_pts))))])
 
 def cvxpolyintersect(poly1,poly2):
     """ (DG)
@@ -336,7 +341,10 @@ def polytriangulation(lring,workspace,touching_boundary):
                 dtype = {'names':['f{}'.format(j) for j in range(ncols)], 'formats':ncols * [triangles[i].dtype]} 
                 set_diff = np.setdiff1d(triangles[i].view(dtype), np.ascontiguousarray(tree[tree_index]['adj_edge'].transpose()).view(dtype))
                 third_vertex = set_diff.view(triangles[i].dtype).reshape(-1, ncols)
-                tree[tree_index]['vertices'] = np.array([tree[tree_index]['adj_edge'][1], tree[tree_index]['adj_edge'][0], third_vertex[0]]) # change the direction of adj_edge to make the child CCW again 
+                for vert in third_vertex: # DWR 7/10/2026: Removes elements in adj_edge from third_vertex. I dislike this implementation, but none of the set operators worked.
+                    if not(np.array_equal(vert,tree[tree_index]['adj_edge'][0]) or np.array_equal(vert,tree[tree_index]['adj_edge'][1])):
+                        third_vertex=vert
+                tree[tree_index]['vertices'] = np.array([tree[tree_index]['adj_edge'][1], tree[tree_index]['adj_edge'][0], third_vertex]) # change the direction of adj_edge to make the child CCW again 
 
                 # Delete the child from the input
                 triangles.pop(i)
@@ -358,7 +366,6 @@ def polytriangulation(lring,workspace,touching_boundary):
         tree[i]['predecessor'] = int(indices_new[indices_old==tree[i]['predecessor']][0])
         tree[i]['index'] = i
     tree[len(tree)-1]['index'] = len(tree)-1
-    
     return tree
 
 def polyconvexdecomposition(lring,workspace,touching_boundary):
