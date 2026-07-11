@@ -253,7 +253,7 @@ class netwk():
                 state=np.array([X[idx, idy], Y[idx, idy]]).reshape((2,1))
                 goal=(target) # Do not convert state and goal into matrices. qpsolvers only accepts arrays
                 if self.env.quiverObsCheck(np.array([idx,idy])):
-                    navV=np.matrix([0,0]).T
+                    navV=np.matrix([0,0]).T # Sets arrows inside obstacles to zero
                 else:
                     navV=self.env.nav(goal,state)
                 U[idx,idy]=navV[0,0]

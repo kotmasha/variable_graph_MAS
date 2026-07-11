@@ -186,13 +186,12 @@ elif solverType == 'nsfPlots':
 
 elif solverType=="odeInt": #For OdeInt
     flowTime=np.linspace(0,simTime,simTime*framesPerSec)
-    print(len(flowTime))
     print(f"stateVector:{stateVector}")
     #plt.show()
     #raise Exception("Comment this line out to turn on the ode solver")
     odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
     print(f"odeSol: {odeSol}")
-    print(np.shape(odeSol))
+    print(f"odeSol shape: {np.shape(odeSol)}")
     odeTimeStamps=np.insert(output_dict['tcur'],0,0) # odeSol includes the starting t=0 frame, but t=0 is not included in tcur
     odeTimeStamps,odeSol=frameCull(odeTimeStamps,odeSol,maxTime=simTime,desiredNframes=Nframes)
     plt.plot(odeSol[:,0],odeSol[:,1],'b--')

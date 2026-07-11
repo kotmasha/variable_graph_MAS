@@ -47,6 +47,9 @@ class environment():
 
     def hitWkspc(self,pt):
         return shapely.contains_xy(self.workspace,pt[0,0],pt[1,0])
+    
+    def quiverObsCheck(self,pos):
+        return self.PolyList.contains(shapely.geometry.Point(pos))
 
 class sphereworldEnv(environment):
 
@@ -55,7 +58,13 @@ class sphereworldEnv(environment):
 
         self.obstacleNum=len(self.obstacleData)
         self.obstacleCenters=[] # Prep list of obstacle centers
-        self.obstacleRadii=[]  # Prep list of obstacle radii
+        self.obstacleRadii=[]
+        # For visualisation:
+        PolyListTemp={}
+        for obs in self.obstacleData:
+            PolyListTemp[obs]=shapely.geometry.Point(self.obstacleData[obs]['center']).buffer(self.obstacleData[obs]['radius'])
+        self.PolyList=shapely.geometry.MultiPolygon([PolyListTemp[obs] for obs in PolyListTemp])
+
         # Loop over all the obstacles, fill the lists, and update the workspace (removing obstacles one by one)
         for ObsName in self.obstacleData:
             center=self.obstacleData[ObsName]['center']
@@ -64,8 +73,8 @@ class sphereworldEnv(environment):
             self.obstacleRadii.append(radius)
             self.workspace=shapely.difference(self.workspace,shapely.geometry.polygon.orient(shapelyObstacle.spawnSphere(center,radius),1.0))
         # Transform lists into numpy arrays
-        self.obstacleCenters=np.array(self.obstacleCenters)
-        self.obstacleRadii=np.array(self.obstacleRadii)
+        self.obstacleCenters=np.matrix(self.obstacleCenters)
+        self.obstacleRadii=np.matrix(self.obstacleRadii).T
 
     def nav(self,goal,pos): # both goal and state are assumed to be numpy column vector matrices
         # set up a qp-solve problem for the projection of the goal to the safe polygon
@@ -87,29 +96,27 @@ class sphereworldEnv(environment):
     
     def safetyMatrix(self,pos):
         # Computes the coefficient matrix describing the safe polytope at the point z
-        m=np.zeros((self.obstacleNum,self.stateDim))
-        for i in range(self.obstacleNum):
-            #print(self.obstacleCenters[i], pos.T)
-            m[i,:]=self.obstacleCenters[i]-pos.T
-            # pdb.set_trace()
-        return m
+        return np.subtract(self.obstacleCenters,pos.T)
 
     def obstacleDist(self,pos):
         # Computes the column vector of distances of z to the obstacle centers
-        c=np.zeros((self.obstacleNum,1))
-        for i in range(self.obstacleNum):
-            col=pos.reshape((np.size(pos),1)) - self.obstacleCenters[i,:].reshape((np.size(pos),1))
-            c[i,:]=np.sqrt(col.T @ col)
-            # c[i]=la.norm(state-self.obstacleCenters[i].T)
-        return c     
+        # DWR 7/11/2026: Need to find a way to vectorise this. It is the most costly function aside from qpsolvers, using 3 seconds total.
+        # c=np.zeros((self.obstacleNum,1),dtype=np.matrix)
+        # for i in range(self.obstacleNum):
+        #     col=pos.reshape((np.size(pos),1)) - self.obstacleCenters[i,:].reshape((np.size(pos),1))
+        #     c[i,:]=np.sqrt(col.T @ col)
+        #     # c[i]=la.norm(state-self.obstacleCenters[i].T)
+        x=np.subtract(self.obstacleCenters[:,0],pos[0])
+        y=np.subtract(self.obstacleCenters[:,1],pos[1])
+        return np.sqrt(np.power(x,2)+np.power(y,2))    
     
     def safetyCoefficients(self,goal,pos): # goal and pos are 2-by-1 vectors
         # input should be column vectors
         b=np.zeros((self.obstacleNum,1))
         dists=self.obstacleDist(pos)
         cons=self.safetyMatrix(pos)
-        b=b+0.5*(dists*dists-self.obstacleRadii.reshape(-1,1)*dists)+cons @ (pos-goal.reshape((np.size(goal),1))) 
-        return b
+        b=b+0.5*(np.power(dists,2) - np.multiply(self.obstacleRadii.reshape(-1,1),dists))+cons @ (pos-goal.reshape((np.size(goal),1))) 
+        return np.array(b)
     
     def inCircle(self,idx,idy,oc,oR):
         return (idx-oc[0])**2 + (idy-oc[1])**2 <= oR**2
@@ -128,10 +135,10 @@ class sphereworldEnv(environment):
         
     def plotObstacles(self,viz):
         for i in range(self.obstacleNum):
-            oc=shapely.Point(self.obstacleCenters[i])
-            oR=self.obstacleRadii[i]
+            oc=shapely.geometry.Point(self.obstacleCenters[i])
+            oR=(self.obstacleRadii[i]).item()
             circ=oc.buffer(oR)
-            x, y=circ.exterior.xy
+            x,y=circ.exterior.xy
             viz.plot(x, y, color='black')
             viz.fill(x, y, color='gray',alpha=1)
 
@@ -505,8 +512,9 @@ class polygonEnv(environment):
             #Vertices should be nparray Nx2
             vertices=np.array(self.obstacleData[obs]['vertices'])
             self.obstacleTrees[obs]=reactive_planner_lib.diffeoTreeTriangulation(vertices,self.DiffeoParams,self.workspaceBounds)
-            self.sphereWorldParams['Obstacles'][obs]['center']=self.obstacleTrees[obs][-1]['center']
+            self.sphereWorldParams['Obstacles'][obs]['center']=self.obstacleTrees[obs][-1]['center'][0] # added [0] to un-nest the array
             self.sphereWorldParams['Obstacles'][obs]['radius']=self.obstacleTrees[obs][-1]['radius']
+            # DWR 7/11/2026: Wasn't sure whether to "un-nest" the array here or in diffeoTree, since it may have been intentional design to mimic matrices
 
         # Construct the corresponding sphere world environment
         # 1. construct sphereWorldParams
@@ -565,9 +573,6 @@ class polygonEnv(environment):
             x, y=poly.exterior.xy
             viz.plot(x, y, color='black')
             viz.fill(x, y, color='gray',alpha=1)
-    
-    def quiverObsCheck(self,pos):
-        return self.PolyList.contains(shapely.geometry.Point(pos))
     
     def polydist(self, xy, p): # DWR 7/8/2026: Is there a reason we can't replace this with polydist from polygeom_lib?
         """
