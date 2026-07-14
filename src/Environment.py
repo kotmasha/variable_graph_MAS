@@ -10,6 +10,7 @@ import reactive_planner_lib
 
 from Obstacle import shapelyObstacle
 # from scipy.optimize import minimize
+from scipy.linalg import lu_solve, lu_factor, lu
 import qpsolvers
 import math
 # import cvxopt
@@ -24,7 +25,8 @@ class environment():
             [envInfo['WorkspaceBdry']['Xmin'],envInfo['WorkspaceBdry']['Ymin']],
             [envInfo['WorkspaceBdry']['Xmax'],envInfo['WorkspaceBdry']['Ymin']],
             [envInfo['WorkspaceBdry']['Xmax'],envInfo['WorkspaceBdry']['Ymax']],
-            [envInfo['WorkspaceBdry']['Xmin'],envInfo['WorkspaceBdry']['Ymax']]
+            [envInfo['WorkspaceBdry']['Xmin'],envInfo['WorkspaceBdry']['Ymax']],
+            [envInfo['WorkspaceBdry']['Xmin'],envInfo['WorkspaceBdry']['Ymin']]
         ]),1.0) # shapely polygon whose interior is the desired workspace
         #DWR 6/15/26: the list of points in the four lines above needed to be converted to a shapely.polygon first
         self.obstacleData=envInfo['Obstacles']
@@ -48,22 +50,27 @@ class environment():
     def hitWkspc(self,pt):
         return shapely.contains_xy(self.workspace,pt[0,0],pt[1,0])
     
-    def quiverObsCheck(self,pos):
-        return self.PolyList.contains(shapely.geometry.Point(pos))
+    def ObsCheck(self,pos):
+        return self.workspace.contains(shapely.geometry.Point(pos))
+    
+    def workspacePatch(self):
+        return shapely.plotting.plot_polygon(self.workspace,add_points=False)
+
+
 
 class sphereworldEnv(environment):
-
-    def __init__(self,envInfo): # sets up polygonal workspace, workspace - obstacles
+    def __init__(self,envInfo,visualize=False): # sets up polygonal workspace, workspace - obstacles
+        #only ONE call should have visualize=True, the call in main_single_sim.py
         super().__init__(envInfo)
 
         self.obstacleNum=len(self.obstacleData)
         self.obstacleCenters=[] # Prep list of obstacle centers
         self.obstacleRadii=[]
         # For visualisation:
-        PolyListTemp={}
+        ObstacleListTemp={}
         for obs in self.obstacleData:
-            PolyListTemp[obs]=shapely.geometry.Point(self.obstacleData[obs]['center']).buffer(self.obstacleData[obs]['radius'])
-        self.PolyList=shapely.geometry.MultiPolygon([PolyListTemp[obs] for obs in PolyListTemp])
+            ObstacleListTemp[obs]=shapely.geometry.Point(self.obstacleData[obs]['center']).buffer(self.obstacleData[obs]['radius'])
+        self.ObstacleList=shapely.geometry.MultiPolygon([ObstacleListTemp[obs] for obs in ObstacleListTemp])
 
         # Loop over all the obstacles, fill the lists, and update the workspace (removing obstacles one by one)
         for ObsName in self.obstacleData:
@@ -133,14 +140,223 @@ class sphereworldEnv(environment):
         else:
             return True
         
-    def plotObstacles(self,viz):
-        for i in range(self.obstacleNum):
-            oc=shapely.geometry.Point(self.obstacleCenters[i])
-            oR=(self.obstacleRadii[i]).item()
-            circ=oc.buffer(oR)
-            x,y=circ.exterior.xy
-            viz.plot(x, y, color='black')
-            viz.fill(x, y, color='gray',alpha=1)
+    # def plotObstacles(self,viz): # DWR 7/13/2026: Code currently uses workspace-obstacles directly for plotting
+    #     for i in range(self.obstacleNum):
+    #         oc=shapely.geometry.Point(self.obstacleCenters[i])
+    #         oR=(self.obstacleRadii[i]).item()
+    #         circ=oc.buffer(oR)
+    #         x,y=circ.exterior.xy
+    #         viz.plot(x, y, color='black')
+    #         viz.fill(x, y, color='gray',alpha=1)
+
+
+
+class polygonEnv(environment):    
+    def __init__(self,envInfo):
+        super().__init__(envInfo)
+        self.DiffeoParams=envInfo['DiffeoParams']
+        Xmin=envInfo['WorkspaceBdry']['Xmin']
+        Xmax=envInfo['WorkspaceBdry']['Xmax']
+        Ymin=envInfo['WorkspaceBdry']['Ymin']
+        Ymax=envInfo['WorkspaceBdry']['Ymax']
+        self.workspaceVertices=[[Xmin,Ymin],[Xmax,Ymin],[Xmax,Ymax],[Xmin,Ymax],[Xmin,Ymin]]
+        #For use in visualisation:
+        self.workspace=shapely.geometry.Polygon(self.workspaceVertices)
+        for obs in self.obstacleData:
+            obstacle_poly=shapely.geometry.Polygon(self.obstacleData[obs]['vertices'])
+            self.workspace=shapely.difference(self.workspace, shapely.geometry.polygon.orient(obstacle_poly, 1.0))
+        self.ObstacleList=shapely.geometry.MultiPolygon([shapely.geometry.Polygon(self.obstacleData[obs]['vertices']) for obs in self.obstacleData])
+        shapely.prepare(self.ObstacleList)
+
+        # k=0
+        # self.obstacle_polygons=[]  # Store obstacle polygons for distance calculations
+        # for ii in range(obsNum):
+        #     faa=obs[k:k+4]
+        #     obstacle_poly=shapelyObstacle.spawnPoly(faa)
+        #     self.obstacle_polygons.append(np.array(obstacle_poly.exterior.coords))
+        #     self.workspace=shapely.difference(self.workspace, shapely.geometry.polygon.orient(obstacle_poly, 1.0))
+        #     k += 4
+
+        # DWR 7/8/2026: Plan: 
+        #   1: Maybe rewrite/replace above code
+        #   2: Create the polygon triangulations/trees IN INIT. We don't need to recalculate the trees every time we do the diffeomorphism
+        #   3: The obstacles in the yml should be arrays of points made by the users.
+        
+        # DWR 7/13/2026: create the visualization here instead of network.py
+
+        self.sphereWorldParams=envInfo
+        self.obstacleTrees={}
+        for obs in self.obstacleData:
+            #Vertices should be nparray Nx2
+            vertices=np.array(self.obstacleData[obs]['vertices'])
+            self.obstacleTrees[obs]=reactive_planner_lib.diffeoTreeTriangulation(vertices,self.DiffeoParams,self.workspaceVertices)
+            self.sphereWorldParams['Obstacles'][obs]['center']=self.obstacleTrees[obs][-1]['center'][0] # added [0] to un-nest the array
+            self.sphereWorldParams['Obstacles'][obs]['radius']=self.obstacleTrees[obs][-1]['radius']
+            # DWR 7/11/2026: Wasn't sure whether to "un-nest" the array here or in diffeoTree, since it may have been intentional design to mimic matrices
+
+        # Construct the corresponding sphere world environment
+        # 1. construct sphereWorldParams
+        # 2. call the sphereWorldEnv constructor
+        self.sphereWorld=sphereworldEnv(self.sphereWorldParams)
+
+    # DWR 7/8/2026: Plan: 
+    #   1: Polygon->Sphere diffeo
+    #   2: Sphereworld nav (already done)
+    #   3: Reverse diffeo
+    #   4: return vector
+    def nav(self,goal,pos):
+        goal=np.array(goal).reshape(1,-1)
+        pos=np.array(pos).reshape(1,-1)
+
+        diffeoPos=pos
+        diffeoPosD=np.eye(2)
+        diffeoPosDD=np.zeros([1,8])[0]
+        for obs in self.obstacleTrees:
+            #DiffeoParams should be dictionary. The question is where do we create DiffeoParams? Probably the yml.
+            spherePos,spherePosD,spherePosDD=reactive_planner_lib.polygonDiffeoTriangulation(diffeoPos,self.obstacleTrees[obs],self.DiffeoParams)
+
+            res0=spherePosD[0,0]*diffeoPosDD[0] + spherePosD[0,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(spherePosDD[0]*diffeoPosD[0,0] + spherePosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(spherePosDD[2]*diffeoPosD[0,0] + spherePosDD[3]*diffeoPosD[1,0])
+            res1=spherePosD[0,0]*diffeoPosDD[1] + spherePosD[0,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(spherePosDD[0]*diffeoPosD[0,1] + spherePosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(spherePosDD[2]*diffeoPosD[0,1] + spherePosDD[3]*diffeoPosD[1,1])
+            res2=spherePosD[0,0]*diffeoPosDD[2] + spherePosD[0,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(spherePosDD[0]*diffeoPosD[0,0] + spherePosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(spherePosDD[2]*diffeoPosD[0,0] + spherePosDD[3]*diffeoPosD[1,0])
+            res3=spherePosD[0,0]*diffeoPosDD[3] + spherePosD[0,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(spherePosDD[0]*diffeoPosD[0,1] + spherePosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(spherePosDD[2]*diffeoPosD[0,1] + spherePosDD[3]*diffeoPosD[1,1])
+            res4=spherePosD[1,0]*diffeoPosDD[0] + spherePosD[1,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(spherePosDD[4]*diffeoPosD[0,0] + spherePosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(spherePosDD[6]*diffeoPosD[0,0] + spherePosDD[7]*diffeoPosD[1,0])
+            res5=spherePosD[1,0]*diffeoPosDD[1] + spherePosD[1,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(spherePosDD[4]*diffeoPosD[0,1] + spherePosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(spherePosDD[6]*diffeoPosD[0,1] + spherePosDD[7]*diffeoPosD[1,1])
+            res6=spherePosD[1,0]*diffeoPosDD[2] + spherePosD[1,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(spherePosDD[4]*diffeoPosD[0,0] + spherePosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(spherePosDD[6]*diffeoPosD[0,0] + spherePosDD[7]*diffeoPosD[1,0])
+            res7=spherePosD[1,0]*diffeoPosDD[3] + spherePosD[1,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(spherePosDD[4]*diffeoPosD[0,1] + spherePosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(spherePosDD[6]*diffeoPosD[0,1] + spherePosDD[7]*diffeoPosD[1,1])
+            diffeoPosDD[0]=res0
+            diffeoPosDD[1]=res1
+            diffeoPosDD[2]=res2
+            diffeoPosDD[3]=res3
+            diffeoPosDD[4]=res4
+            diffeoPosDD[5]=res5
+            diffeoPosDD[6]=res6
+            diffeoPosDD[7]=res7
+
+            diffeoPosD=spherePosD*diffeoPosD
+            diffeoPos=spherePos
+
+            # compute the goal in sphere world:
+            sphereGoal,_,_=reactive_planner_lib.polygonDiffeoTriangulation(goal,self.obstacleTrees[obs],self.DiffeoParams)
+
+        # compute the navigation field value in sphere world:
+        sphereNavField=self.sphereWorld.nav(sphereGoal.transpose(),spherePos.transpose())
+
+        # compute and return the pull-back of sphereNavField to the real world:
+        #   DWR 7/13/2026: we replaced np.matmul with lu_solve for better numerical stability
+        #return np.matmul(np.linalg.inv(diffeoPosD),sphereNavField))
+        return lu_solve(lu_factor(diffeoPosD),sphereNavField,overwrite_b=True)
+    
+    # def plotObstacles(self,viz): # DWR 7/13/2026: Code currently uses workspace minus obstacles directly for plotting
+    #     for obs in self.obstacleData:
+    #         poly=shapely.geometry.Polygon(self.obstacleData[obs]['vertices'])
+    #         poly=shapely.geometry.polygon.orient(poly,1.0)
+    #         x, y=poly.exterior.xy
+    #         viz.plot(x, y, color='black')
+    #         viz.fill(x, y, color='gray',alpha=0.3)
+    
+    def polydist(self, xy, p): # DWR 7/8/2026: Is there a reason we can't replace this with polydist from polygeom_lib?
+        """
+        Computes the distance between a set of points, p, and 
+        a polygon, xy, and returns the closest points on the polygon boundary.
+        
+        Input:  
+            xy : Vertex coordinates of a polygon (Nx2 numpy.array)
+            p  : Coordinates of a set of points (Mx2 numpy.array)
+        Output: 
+            D  : Distance between points and the polygon 
+            C  : Coordinates of the closest points on the polygon to the input points
+        """
+        # Convert input data into 2D arrays
+        xy=xy.reshape(-1, 2)
+        p=p.reshape(-1, 2)
+         
+        # Distance to empty set is infinity
+        if (xy.shape[0] == 0):
+            D=np.zeros(p.shape[0])
+            D.fill(np.inf)
+            C=np.zeros(p.shape)
+            C.fill(np.inf) 
+            return D, C
+        
+        orientsign=1 - 2 * self.ispolycw(xy)  # orientation of the polygon
+        numPoint=p.shape[0]  # number of points
+        # Relative coordinates of polygon rims
+        xyPre=np.roll(xy, 1, axis=0)
+        dxy=xyPre - xy
+        dxyNorm=np.power(np.linalg.norm(dxy, axis=1)[:, np.newaxis], 2)
+        dxyNorm[(dxyNorm == 0)]=1
+
+        # Compute distances and closest points on the polygon boundary  
+        D=np.zeros(numPoint)
+        C=np.zeros([numPoint, 2])
+        for k in range(numPoint):
+            w=np.sum((p[k] - xy) * dxy, axis=1)[:, np.newaxis] / dxyNorm
+            w=np.fmax(np.fmin(w, 1), 0)
+            ctemp=(1 - w) * xy + w * xyPre
+            dtemp=np.linalg.norm(p[k] - ctemp, axis=1)
+            iMin=dtemp.argmin()
+            D[k]=dtemp[iMin]
+            C[k]=ctemp[iMin]  
+        
+        return D, C
+    
+    def ispolycw(self, xy): # DWR 7/8/2026: Is only used in this version of polydist, which we are not sure we need.
+        """
+        Determines if the vertices, xy, of a non-self-intersecting polygon 
+        are in clockwise order based on the signed area of the polygon.
+        
+        Input:
+            xy : Vertex coordinates of a non-self-intersecting polygon (Nx2 numpy.array)   
+        Output:
+            cw : Boolean True if the input polygon is in clockwise order
+        """
+        return (self.polysignarea(xy) <= 0)
+    
+    def polysignarea(self, xy): # DWR 7/8/2026: Can probably be replaced with polysignedarea in polygeom_lib
+        """
+        Determines the signed area of a non-self-intersecting polygon with vertices xy
+        
+        Input:
+            xy   : Vertex coordinates of a non-self-intersecting polygon (Nx2 numpy.array)   
+        Output:
+            area : Signed area of the polygon
+        """
+        xy=xy.reshape(-1, 2)  # Convert the input data into a 2D array 
+        numVertex=xy.shape[0]  # Number of vertices
+        area=0.0
+        for ck in range(0, numVertex):
+            cn=(ck + 1) % numVertex
+            area=area + np.cross(xy[ck], xy[cn])
+        area=0.5 * area
+
+        return area
+    
+    def get_distance_to_nearest_obstacle(self, state): # Can probably be removed too
+        """
+        Calculates the minimum distance from a given state to any obstacle in the environment.
+        
+        Input:
+            state : Position coordinates [x, y] as numpy array or list
+        Output:
+            min_dist : Minimum distance to the nearest obstacle
+            nearest_point : Coordinates of the nearest point on the obstacle
+        """
+        state=np.array(state).reshape(1, 2)  # Ensure state is in correct shape
+        
+        min_dist=float('inf')
+        nearest_point=None
+        
+        for obstacle_poly in self.obstacle_polygons:
+            # Calculate distance to this obstacle
+            distances, closest_points=self.polydist(obstacle_poly, state)
+            
+            # Check if this is the closest obstacle so far
+            if distances[0] < min_dist:
+                min_dist=distances[0]
+                nearest_point=closest_points[0]
+        
+        return min_dist, nearest_point
+    # \nRadius of\ncommunication=3m
 
 
 
@@ -473,207 +689,3 @@ class sphereworldEnv(environment):
 #             return 0
 #         else:
 #             return 3 * x ** 2
-
-
-
-
-
-
-class polygonEnv(environment):    
-    def __init__(self,envInfo):
-        super().__init__(envInfo)
-        self.DiffeoParams=envInfo['DiffeoParams']
-        Xmin=envInfo['WorkspaceBdry']['Xmin']
-        Xmax=envInfo['WorkspaceBdry']['Xmax']
-        Ymin=envInfo['WorkspaceBdry']['Ymin']
-        Ymax=envInfo['WorkspaceBdry']['Ymax']
-        self.workspaceBounds=[[Xmin,Ymin],[Xmax,Ymin],[Xmax,Ymax],[Xmin,Ymax],[Xmin,Ymin]]
-        #For use in visualisation:
-        self.PolyList=shapely.geometry.MultiPolygon([shapely.geometry.Polygon(self.obstacleData[obs]['vertices']) for obs in self.obstacleData])
-        self.counter=0
-
-        # k=0
-        # self.obstacle_polygons=[]  # Store obstacle polygons for distance calculations
-        # for ii in range(obsNum):
-        #     faa=obs[k:k+4]
-        #     obstacle_poly=shapelyObstacle.spawnPoly(faa)
-        #     self.obstacle_polygons.append(np.array(obstacle_poly.exterior.coords))
-        #     self.workspace=shapely.difference(self.workspace, shapely.geometry.polygon.orient(obstacle_poly, 1.0))
-        #     k += 4
-
-        # DWR 7/8/2026: Plan: 
-        #   1: Maybe rewrite/replace above code
-        #   2: Create the polygon triangulations/trees IN INIT. We don't need to recalculate the trees every time we do the diffeomorphism
-        #   3: The obstacles in the yml should be arrays of points made by the users.
-
-        self.sphereWorldParams=envInfo
-        self.obstacleTrees={}
-        for obs in self.obstacleData:
-            #Vertices should be nparray Nx2
-            vertices=np.array(self.obstacleData[obs]['vertices'])
-            self.obstacleTrees[obs]=reactive_planner_lib.diffeoTreeTriangulation(vertices,self.DiffeoParams,self.workspaceBounds)
-            self.sphereWorldParams['Obstacles'][obs]['center']=self.obstacleTrees[obs][-1]['center'][0] # added [0] to un-nest the array
-            self.sphereWorldParams['Obstacles'][obs]['radius']=self.obstacleTrees[obs][-1]['radius']
-            # DWR 7/11/2026: Wasn't sure whether to "un-nest" the array here or in diffeoTree, since it may have been intentional design to mimic matrices
-
-        # Construct the corresponding sphere world environment
-        # 1. construct sphereWorldParams
-        # 2. call the sphereWorldEnv constructor
-        self.sphereWorld=sphereworldEnv(self.sphereWorldParams)
-
-    # DWR 7/8/2026: Plan: 
-    #   1: Polygon->Sphere diffeo
-    #   2: Sphereworld nav (already done)
-    #   3: Reverse diffeo
-    #   4: return vector
-    def nav(self,goal,pos):
-        goal=np.array(goal).reshape(1,-1)
-        pos=np.array(pos).reshape(1,-1)
-
-        diffeoPos=pos
-        diffeoPosD=np.eye(2)
-        diffeoPosDD=np.zeros([1,8])[0]
-        for obs in self.obstacleTrees:
-            #DiffeoParams should be dictionary. The question is where do we create DiffeoParams? Probably the yml.
-            spherePos,spherePosD,spherePosDD=reactive_planner_lib.polygonDiffeoTriangulation(diffeoPos,self.obstacleTrees[obs],self.DiffeoParams)
-
-            res0=spherePosD[0,0]*diffeoPosDD[0] + spherePosD[0,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(spherePosDD[0]*diffeoPosD[0,0] + spherePosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(spherePosDD[2]*diffeoPosD[0,0] + spherePosDD[3]*diffeoPosD[1,0])
-            res1=spherePosD[0,0]*diffeoPosDD[1] + spherePosD[0,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(spherePosDD[0]*diffeoPosD[0,1] + spherePosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(spherePosDD[2]*diffeoPosD[0,1] + spherePosDD[3]*diffeoPosD[1,1])
-            res2=spherePosD[0,0]*diffeoPosDD[2] + spherePosD[0,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(spherePosDD[0]*diffeoPosD[0,0] + spherePosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(spherePosDD[2]*diffeoPosD[0,0] + spherePosDD[3]*diffeoPosD[1,0])
-            res3=spherePosD[0,0]*diffeoPosDD[3] + spherePosD[0,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(spherePosDD[0]*diffeoPosD[0,1] + spherePosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(spherePosDD[2]*diffeoPosD[0,1] + spherePosDD[3]*diffeoPosD[1,1])
-            res4=spherePosD[1,0]*diffeoPosDD[0] + spherePosD[1,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(spherePosDD[4]*diffeoPosD[0,0] + spherePosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(spherePosDD[6]*diffeoPosD[0,0] + spherePosDD[7]*diffeoPosD[1,0])
-            res5=spherePosD[1,0]*diffeoPosDD[1] + spherePosD[1,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(spherePosDD[4]*diffeoPosD[0,1] + spherePosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(spherePosDD[6]*diffeoPosD[0,1] + spherePosDD[7]*diffeoPosD[1,1])
-            res6=spherePosD[1,0]*diffeoPosDD[2] + spherePosD[1,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(spherePosDD[4]*diffeoPosD[0,0] + spherePosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(spherePosDD[6]*diffeoPosD[0,0] + spherePosDD[7]*diffeoPosD[1,0])
-            res7=spherePosD[1,0]*diffeoPosDD[3] + spherePosD[1,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(spherePosDD[4]*diffeoPosD[0,1] + spherePosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(spherePosDD[6]*diffeoPosD[0,1] + spherePosDD[7]*diffeoPosD[1,1])
-            diffeoPosDD[0]=res0
-            diffeoPosDD[1]=res1
-            diffeoPosDD[2]=res2
-            diffeoPosDD[3]=res3
-            diffeoPosDD[4]=res4
-            diffeoPosDD[5]=res5
-            diffeoPosDD[6]=res6
-            diffeoPosDD[7]=res7
-
-            diffeoPosD=spherePosD*diffeoPosD
-            diffeoPos=spherePos
-
-            # compute the goal in sphere world:
-            sphereGoal,_,_=reactive_planner_lib.polygonDiffeoTriangulation(goal,self.obstacleTrees[obs],self.DiffeoParams)
-
-        # compute the navigation field value in sphere world:
-        sphereNavField=self.sphereWorld.nav(sphereGoal.transpose(),spherePos.transpose())
-
-        # compute and return the pull-back of sphereNavField to the real world:
-        return np.matmul(np.linalg.inv(spherePosD),sphereNavField)
-    
-    def plotObstacles(self,viz):
-        for obs in self.obstacleData:
-            poly=shapely.geometry.Polygon(self.obstacleData[obs]['vertices'])
-            poly=shapely.geometry.polygon.orient(poly,1.0)
-            x, y=poly.exterior.xy
-            viz.plot(x, y, color='black')
-            viz.fill(x, y, color='gray',alpha=1)
-    
-    def polydist(self, xy, p): # DWR 7/8/2026: Is there a reason we can't replace this with polydist from polygeom_lib?
-        """
-        Computes the distance between a set of points, p, and 
-        a polygon, xy, and returns the closest points on the polygon boundary.
-        
-        Input:  
-            xy : Vertex coordinates of a polygon (Nx2 numpy.array)
-            p  : Coordinates of a set of points (Mx2 numpy.array)
-        Output: 
-            D  : Distance between points and the polygon 
-            C  : Coordinates of the closest points on the polygon to the input points
-        """
-        # Convert input data into 2D arrays
-        xy=xy.reshape(-1, 2)
-        p=p.reshape(-1, 2)
-         
-        # Distance to empty set is infinity
-        if (xy.shape[0] == 0):
-            D=np.zeros(p.shape[0])
-            D.fill(np.inf)
-            C=np.zeros(p.shape)
-            C.fill(np.inf) 
-            return D, C
-        
-        orientsign=1 - 2 * self.ispolycw(xy)  # orientation of the polygon
-        numPoint=p.shape[0]  # number of points
-        # Relative coordinates of polygon rims
-        xyPre=np.roll(xy, 1, axis=0)
-        dxy=xyPre - xy
-        dxyNorm=np.power(np.linalg.norm(dxy, axis=1)[:, np.newaxis], 2)
-        dxyNorm[(dxyNorm == 0)]=1
-
-        # Compute distances and closest points on the polygon boundary  
-        D=np.zeros(numPoint)
-        C=np.zeros([numPoint, 2])
-        for k in range(numPoint):
-            w=np.sum((p[k] - xy) * dxy, axis=1)[:, np.newaxis] / dxyNorm
-            w=np.fmax(np.fmin(w, 1), 0)
-            ctemp=(1 - w) * xy + w * xyPre
-            dtemp=np.linalg.norm(p[k] - ctemp, axis=1)
-            iMin=dtemp.argmin()
-            D[k]=dtemp[iMin]
-            C[k]=ctemp[iMin]  
-        
-        return D, C
-    
-    def ispolycw(self, xy): # DWR 7/8/2026: Is only used in this version of polydist, which we are not sure we need.
-        """
-        Determines if the vertices, xy, of a non-self-intersecting polygon 
-        are in clockwise order based on the signed area of the polygon.
-        
-        Input:
-            xy : Vertex coordinates of a non-self-intersecting polygon (Nx2 numpy.array)   
-        Output:
-            cw : Boolean True if the input polygon is in clockwise order
-        """
-        return (self.polysignarea(xy) <= 0)
-    
-    def polysignarea(self, xy): # DWR 7/8/2026: Can probably be replaced with polysignedarea in polygeom_lib
-        """
-        Determines the signed area of a non-self-intersecting polygon with vertices xy
-        
-        Input:
-            xy   : Vertex coordinates of a non-self-intersecting polygon (Nx2 numpy.array)   
-        Output:
-            area : Signed area of the polygon
-        """
-        xy=xy.reshape(-1, 2)  # Convert the input data into a 2D array 
-        numVertex=xy.shape[0]  # Number of vertices
-        area=0.0
-        for ck in range(0, numVertex):
-            cn=(ck + 1) % numVertex
-            area=area + np.cross(xy[ck], xy[cn])
-        area=0.5 * area
-
-        return area
-    
-    def get_distance_to_nearest_obstacle(self, state): # Can probably be removed too
-        """
-        Calculates the minimum distance from a given state to any obstacle in the environment.
-        
-        Input:
-            state : Position coordinates [x, y] as numpy array or list
-        Output:
-            min_dist : Minimum distance to the nearest obstacle
-            nearest_point : Coordinates of the nearest point on the obstacle
-        """
-        state=np.array(state).reshape(1, 2)  # Ensure state is in correct shape
-        
-        min_dist=float('inf')
-        nearest_point=None
-        
-        for obstacle_poly in self.obstacle_polygons:
-            # Calculate distance to this obstacle
-            distances, closest_points=self.polydist(obstacle_poly, state)
-            
-            # Check if this is the closest obstacle so far
-            if distances[0] < min_dist:
-                min_dist=distances[0]
-                nearest_point=closest_points[0]
-        
-        return min_dist, nearest_point
-    # \nRadius of\ncommunication=3m

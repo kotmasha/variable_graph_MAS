@@ -21,7 +21,6 @@ from graph_w_names import graph_w_names
 from states import State
 
 class netwk():
-
     def __init__(self,networkInfo,env):
         self.networkInfo=networkInfo # 6/15/26: Used to get definitions outside __init__ working; should probably be removed/changed later.
         self.netID=networkInfo['netID']
@@ -121,19 +120,8 @@ class netwk():
         if self.agentSpawn and self.graph.edges!=None:
             self.task=agentask(self.graph,networkInfo['networkInfo']['Agents']['AgentInfo']) # 6/16/2026 DWR: Going with the task-oriented instead of leader-based approach
             self.populate(self.mode)
-            self.y0=np.empty((0,1))
-            for name in self.graph.names:
-                self.y0=np.vstack((self.y0,self.agents[name].state.q[0][0])) # DWR 6/17/2026: We should remove this, since we intend to use stateVectorInfo
-            self.figure,self.visualization=plt.subplots()
-            # self.figure=self.visualization.get_figure()       
-            self.workspacePatch=shapely.plotting.plot_polygon(self.env.workspace,add_points=False)
-            self.visualization.add_patch(self.workspacePatch)
-            # if self.worldType == 1:
-                # buffer_patch = self.env.bufferPatch
-
-
+            
             # form dictionary of agent position visual representations
-
             self.verticesVisual={name:patches.Circle(
                 #uv.col2tup(self.agents[name].pos),
                 uv.col2tup(np.matrix(self.agents[name].state.q)), #not sure if the matrix conversion is the best way to do this
@@ -153,24 +141,11 @@ class netwk():
                 animated=True,
                 ) for edge in self.graph.edges}
             
-            for edge in self.graph.edges:
-                self.visualization.add_patch(self.edgesVisual[edge])
-                # print(la.norm(self.edgesVisual[edge]))
-                # self.vis2.plot()
-
-            for name in self.graph.names:
-                self.visualization.add_patch(self.verticesVisual[name])
-            target=np.array((networkInfo['networkInfo']['networkTask']['Goals']['Goal1']))
+            self.target=np.array((networkInfo['networkInfo']['networkTask']['Goals']['Goal1']))
             
-            self.goalVisual=self.visualization.plot(target[0],target[1],'rx')
-            self.plotQuiver(target.reshape((2,1)))
-            if self.LazyQ:
-                titlePlot='Lazy PnP Controller'
-            else:
-                titlePlot='Contractive PnP Controller'
-            self.env.plotObstacles(self.visualization)
+            #self.env.plotObstacles(self.visualization)
             # self.visualization.set(title=titlePlot,xlabel='Workspace x-axis [m]', ylabel='Workspace y-axis [m]')
-            self.visualization.grid(False)
+            #self.visualization.grid(False)
             # self.figure.legend(loc='upper left',title='Agents')
 
 
@@ -183,8 +158,8 @@ class netwk():
             #     self.agents[name]=Agent(name, self.env, self,{'target': np.array([[9],[9]]), 'keepUpQ': False}, np.array(pos).reshape((2,1)))
             self.figure,self.visualization=plt.subplots()
             # self.figure=self.visualization.get_figure()       
-            self.workspacePatch=shapely.plotting.plot_polygon(self.env.workspace,add_points=False)
-            self.visualization.add_patch(self.workspacePatch)
+            # self.workspacePatch=shapely.plotting.plot_polygon(self.env.workspace,add_points=False)
+            # self.visualization.add_patch(self.workspacePatch)
             # form dictionary of agent position visual representations
 
             self.verticesVisual={name:patches.Circle(
@@ -241,7 +216,7 @@ class netwk():
     def plotQuiver(self,target):
         [xmin, ymin, xmax, ymax] = shapely.bounds(self.env.workspace)
         
-        xArray=np.arange(xmin,xmax,0.7)
+        xArray=np.arange(xmin,xmax,0.7) # third parameter is arrows per unit length. Smaller=more dense
         yArray=np.arange(ymin,ymax,0.7)
         X,Y=np.meshgrid(xArray,yArray)
         lenX=X.shape
@@ -251,17 +226,13 @@ class netwk():
         for idx in range(maxX):
             for idy in range(maxX):
                 state=np.array([X[idx, idy], Y[idx, idy]]).reshape((2,1))
-                goal=(target) # Do not convert state and goal into matrices. qpsolvers only accepts arrays
-                if self.env.quiverObsCheck(np.array([idx,idy])):
-                    navV=np.matrix([0,0]).T # Sets arrows inside obstacles to zero
-                else:
+                goal=(target) # Do not convert state and goal into matrices. QPsolvers only accepts arrays
+                if (self.env.ObsCheck(state)): # obsCheck checks if point is inside workspace minus obstacles
                     navV=self.env.nav(goal,state)
-                U[idx,idy]=navV[0,0]
-                V[idx,idy]=navV[1,0]
+                    U[idx,idy]=navV[0,0]
+                    V[idx,idy]=navV[1,0]
 
-        self.visualization.quiver(X, Y, U, V)
-
-        # add stuff to remove arrows inside obstacles
+        return X, Y, U, V
         # plt.show()
 
 

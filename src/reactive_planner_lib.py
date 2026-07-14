@@ -1661,19 +1661,18 @@ def insideImplicitTriangle(Position, Triangle, DiffeoParams):
     p = DiffeoParams['p']
 
     # Compute hyperplane functions
-    hyperplane = np.zeros(Triangle['vertices_tilde'].shape[0])
-    for i in range(0, Triangle['vertices_tilde'].shape[0]):
-        hyperplane[i] = np.dot(Position[0]-Triangle['vertices_tilde'][i],Triangle['r_tilde_n'][i])
+    posMinVertex=Position[0]-Triangle['vertices_tilde'] # Vectorized version 7/11/2026. Took off 12 seconds of runtime from easyTestPolygon.yml
+    h=np.multiply(posMinVertex[:,0],Triangle['r_tilde_n'][:,0]) + np.multiply(posMinVertex[:,1],Triangle['r_tilde_n'][:,1])
 
     # Compute the R-function and its gradient and hessian
-    gammadd = (-(p-1)*((hyperplane[0]**(p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p)))+(p-1)*((hyperplane[0]**(2*p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][0]]).transpose(),np.array([Triangle['r_tilde_n'][0]])) + ((p-1)*((hyperplane[0]**(p-1)*hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][0]]).transpose(),np.array([Triangle['r_tilde_n'][1]])) + (1-((hyperplane[0]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.zeros((2,2)) + (-(p-1)*((hyperplane[1]**(p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p)))+(p-1)*((hyperplane[1]**(2*p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][1]]).transpose(),np.array([Triangle['r_tilde_n'][1]])) + ((p-1)*((hyperplane[0]**(p-1)*hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][1]]).transpose(),np.array([Triangle['r_tilde_n'][0]])) + (1-((hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.zeros((2,2))
-    gammad = (1-((hyperplane[0]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.array([Triangle['r_tilde_n'][0]]) + (1-((hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.array([Triangle['r_tilde_n'][1]])
-    gamma = hyperplane[0] + hyperplane[1] - (hyperplane[0]**p+hyperplane[1]**p)**(1/p)
-    for i in range(2,len(hyperplane)):
-        gammadd = (-(p-1)*((gamma**(p-2))/((gamma**p+hyperplane[i]**p)**((p-1)/p)))+(p-1)*((gamma**(2*p-2))/((gamma**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),gammad) + ((p-1)*((gamma**(p-1)*hyperplane[i]**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),np.array([Triangle['r_tilde_n'][i]])) + (1-((gamma**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p))))*gammadd + (-(p-1)*((hyperplane[i]**(p-2))/((gamma**p+hyperplane[i]**p)**((p-1)/p)))+(p-1)*((hyperplane[i]**(2*p-2))/((gamma**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][i]]).transpose(),np.array([Triangle['r_tilde_n'][i]])) + ((p-1)*((gamma**(p-1)*hyperplane[i]**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][i]]).transpose(),gammad) + (1-((hyperplane[i]**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p))))*np.zeros((2,2))
-        gammad = (1-((gamma**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p))))*gammad + (1-((hyperplane[i]**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p))))*np.array([Triangle['r_tilde_n'][i]])
-        gamma = gamma + hyperplane[i] - (gamma**p+hyperplane[i]**p)**(1/p)
-
+    # DWR 7/11/2026: Can we vectorize this? It takes a total of 2 minutes and 16 seconds to compute insideImplicitTriangle
+    gammadd = (-(p-1)*((h[0]**(p-2))/((h[0]**p+h[1]**p)**((p-1)/p)))+(p-1)*((h[0]**(2*p-2))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][0]]).transpose(),np.array([Triangle['r_tilde_n'][0]])) + ((p-1)*((h[0]**(p-1)*h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][0]]).transpose(),np.array([Triangle['r_tilde_n'][1]])) + (1-((h[0]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.zeros((2,2)) + (-(p-1)*((h[1]**(p-2))/((h[0]**p+h[1]**p)**((p-1)/p)))+(p-1)*((h[1]**(2*p-2))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][1]]).transpose(),np.array([Triangle['r_tilde_n'][1]])) + ((p-1)*((h[0]**(p-1)*h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][1]]).transpose(),np.array([Triangle['r_tilde_n'][0]])) + (1-((h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.zeros((2,2))
+    gammad = (1-((h[0]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.array([Triangle['r_tilde_n'][0]]) + (1-((h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.array([Triangle['r_tilde_n'][1]])
+    gamma = h[0] + h[1] - (h[0]**p+h[1]**p)**(1/p)
+    for i in range(2,len(h)):
+        gammadd = (-(p-1)*((gamma**(p-2))/((gamma**p+h[i]**p)**((p-1)/p)))+(p-1)*((gamma**(2*p-2))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),gammad) + ((p-1)*((gamma**(p-1)*h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),np.array([Triangle['r_tilde_n'][i]])) + (1-((gamma**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*gammadd + (-(p-1)*((h[i]**(p-2))/((gamma**p+h[i]**p)**((p-1)/p)))+(p-1)*((h[i]**(2*p-2))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][i]]).transpose(),np.array([Triangle['r_tilde_n'][i]])) + ((p-1)*((gamma**(p-1)*h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][i]]).transpose(),gammad) + (1-((h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*np.zeros((2,2))
+        gammad = (1-((gamma**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*gammad + (1-((h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*np.array([Triangle['r_tilde_n'][i]])
+        gamma = gamma + h[i] - (gamma**p+h[i]**p)**(1/p)
     return gamma, gammad, gammadd
 
 

@@ -49,7 +49,7 @@ for agentName in data['Network']['networkInfo']['Agents']['AgentInfo']:
     names.append(agentName)
 
 # Initialize the environment
-env=getattr(Environment,data['EnvType'])(data['EnvInfo']) # DWR 6/15/26 the ** on **data[] is not necessary in this situation
+env=getattr(Environment,data['EnvType'])(data['EnvInfo'])
 
 # Initialize the network
 net=netwk(data['Network'],env)
@@ -72,6 +72,27 @@ else:
 
 graph=graph_w_names(names,edges)
 
+# Environment.py plotting
+figure,visualization=plt.subplots()
+visualization.add_patch(env.workspacePatch())
+
+# Network.py plotting (some may be moved into their own categories, like stuff that comes from graph_w_names.py)
+for name in graph.names:
+    visualization.add_patch(net.verticesVisual[name])
+for edge in graph.edges:
+    visualization.add_patch(net.edgesVisual[edge])
+goalVisual=visualization.plot(net.target[0],net.target[1],'rx')
+qX,qY,qU,qV=net.plotQuiver(net.target.reshape((2,1)))
+visualization.quiver(qX,qY,qU,qV)
+if net.LazyQ:
+    titlePlot='Lazy PnP Controller'
+else:
+    titlePlot='Contractive PnP Controller'
+
+# misc. plotting
+visualization.grid(False)
+# Trajectory plotting is handled by plot_multi_agent_trajectories
+
 
 def updateAni(content): # Content is assumed to be a tuple containing timestamp,networkState,net
     timeStamp,networkState,net=content
@@ -85,7 +106,7 @@ def updateAni(content): # Content is assumed to be a tuple containing timestamp,
 def plot_multi_agent_trajectories(net, odeSol, flowTime):
     num_agents = len(net.graph.names)
     
-    ax = net.visualization
+    ax = visualization
     colors = plt.cm.rainbow(np.linspace(0, 1, num_agents))
     goal_x, goal_y = 9,9
     ax.plot(goal_x, goal_y, 'X', color='red', markersize=15, markeredgewidth=2, label='Goal')
@@ -132,7 +153,7 @@ def plot_multi_agent_trajectories(net, odeSol, flowTime):
         Line2D([0], [0], marker='X', color='red', markersize=8, markeredgewidth=1, label='Goal'),
         Line2D([0], [0], linestyle='--', color='gray', label='Agent Trajectory')  
     ]
-    net.figure.text(0.5,0.01,'MAS Simulation with Graph Maintainance',ha='center',fontsize=11)
+    figure.text(0.5,0.01,'MAS Simulation with Graph Maintainance',ha='center',fontsize=11)
     # Add legend to lower right corner
     ax.legend(handles=legend_elements, loc='lower right',  ncol=1,fontsize=18)
 
@@ -187,7 +208,6 @@ elif solverType == 'nsfPlots':
 elif solverType=="odeInt": #For OdeInt
     flowTime=np.linspace(0,simTime,simTime*framesPerSec)
     print(f"stateVector:{stateVector}")
-    #plt.show()
     #raise Exception("Comment this line out to turn on the ode solver")
     odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
     print(f"odeSol: {odeSol}")
