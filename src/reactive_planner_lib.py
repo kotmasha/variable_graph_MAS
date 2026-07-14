@@ -1627,18 +1627,18 @@ def outsideImplicitPolygon(Position, PolygonUsed, DiffeoParams):
     p = DiffeoParams['p']
 
     # Compute hyperplane functions
-    hyperplane = np.zeros(PolygonUsed['augmented_vertices'].shape[0])
+    h = np.zeros(PolygonUsed['augmented_vertices'].shape[0])
     for i in range(0, PolygonUsed['augmented_vertices'].shape[0]):
-        hyperplane[i] = np.dot(Position[0]-PolygonUsed['augmented_vertices'][i],PolygonUsed['r_n'][i])
+        h[i] = np.dot(Position[0]-PolygonUsed['augmented_vertices'][i],PolygonUsed['r_n'][i])
 
     # Compute the R-function and its gradient and hessian
-    betadd = (-(p-1)*((hyperplane[0]**(p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p)))+(p-1)*((hyperplane[0]**(2*p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][0]]).transpose(),np.array([PolygonUsed['r_n'][0]])) + ((p-1)*((hyperplane[0]**(p-1)*hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][0]]).transpose(),np.array([PolygonUsed['r_n'][1]])) + (1-((hyperplane[0]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.zeros((2,2)) + (-(p-1)*((hyperplane[1]**(p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p)))+(p-1)*((hyperplane[1]**(2*p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][1]]).transpose(),np.array([PolygonUsed['r_n'][1]])) + ((p-1)*((hyperplane[0]**(p-1)*hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][1]]).transpose(),np.array([PolygonUsed['r_n'][0]])) + (1-((hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.zeros((2,2))
-    betad = (1-((hyperplane[0]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.array([PolygonUsed['r_n'][0]]) + (1-((hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.array([PolygonUsed['r_n'][1]])
-    beta = hyperplane[0] + hyperplane[1] - (hyperplane[0]**p+hyperplane[1]**p)**(1/p)
-    for i in range(2,len(hyperplane)):
-        betadd = (-(p-1)*((beta**(p-2))/((beta**p+hyperplane[i]**p)**((p-1)/p)))+(p-1)*((beta**(2*p-2))/((beta**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(betad.transpose(),betad) + ((p-1)*((beta**(p-1)*hyperplane[i]**(p-1))/((beta**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(betad.transpose(),np.array([PolygonUsed['r_n'][i]])) + (1-((beta**(p-1))/((beta**p+hyperplane[i]**p)**((p-1)/p))))*betadd + (-(p-1)*((hyperplane[i]**(p-2))/((beta**p+hyperplane[i]**p)**((p-1)/p)))+(p-1)*((hyperplane[i]**(2*p-2))/((beta**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][i]]).transpose(),np.array([PolygonUsed['r_n'][i]])) + ((p-1)*((beta**(p-1)*hyperplane[i]**(p-1))/((beta**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][i]]).transpose(),betad) + (1-((hyperplane[i]**(p-1))/((beta**p+hyperplane[i]**p)**((p-1)/p))))*np.zeros((2,2))
-        betad = (1-((beta**(p-1))/((beta**p+hyperplane[i]**p)**((p-1)/p))))*betad + (1-((hyperplane[i]**(p-1))/((beta**p+hyperplane[i]**p)**((p-1)/p))))*np.array([PolygonUsed['r_n'][i]])
-        beta = beta + hyperplane[i] - (beta**p+hyperplane[i]**p)**(1/p)
+    betadd = (-(p-1)*((h[0]**(p-2))/((h[0]**p+h[1]**p)**((p-1)/p)))+(p-1)*((h[0]**(2*p-2))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][0]]).transpose(),np.array([PolygonUsed['r_n'][0]])) + ((p-1)*((h[0]**(p-1)*h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][0]]).transpose(),np.array([PolygonUsed['r_n'][1]])) + (1-((h[0]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.zeros((2,2)) + (-(p-1)*((h[1]**(p-2))/((h[0]**p+h[1]**p)**((p-1)/p)))+(p-1)*((h[1]**(2*p-2))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][1]]).transpose(),np.array([PolygonUsed['r_n'][1]])) + ((p-1)*((h[0]**(p-1)*h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][1]]).transpose(),np.array([PolygonUsed['r_n'][0]])) + (1-((h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.zeros((2,2))
+    betad = (1-((h[0]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.array([PolygonUsed['r_n'][0]]) + (1-((h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.array([PolygonUsed['r_n'][1]])
+    beta = h[0] + h[1] - (h[0]**p+h[1]**p)**(1/p)
+    for i in range(2,len(h)):
+        betadd = (-(p-1)*((beta**(p-2))/((beta**p+h[i]**p)**((p-1)/p)))+(p-1)*((beta**(2*p-2))/((beta**p+h[i]**p)**((p-1)/p+1))))*np.dot(betad.transpose(),betad) + ((p-1)*((beta**(p-1)*h[i]**(p-1))/((beta**p+h[i]**p)**((p-1)/p+1))))*np.dot(betad.transpose(),np.array([PolygonUsed['r_n'][i]])) + (1-((beta**(p-1))/((beta**p+h[i]**p)**((p-1)/p))))*betadd + (-(p-1)*((h[i]**(p-2))/((beta**p+h[i]**p)**((p-1)/p)))+(p-1)*((h[i]**(2*p-2))/((beta**p+h[i]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][i]]).transpose(),np.array([PolygonUsed['r_n'][i]])) + ((p-1)*((beta**(p-1)*h[i]**(p-1))/((beta**p+h[i]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_n'][i]]).transpose(),betad) + (1-((h[i]**(p-1))/((beta**p+h[i]**p)**((p-1)/p))))*np.zeros((2,2))
+        betad = (1-((beta**(p-1))/((beta**p+h[i]**p)**((p-1)/p))))*betad + (1-((h[i]**(p-1))/((beta**p+h[i]**p)**((p-1)/p))))*np.array([PolygonUsed['r_n'][i]])
+        beta = beta + h[i] - (beta**p+h[i]**p)**(1/p)
 
     return -beta, -betad, -betadd
 
@@ -1661,8 +1661,8 @@ def insideImplicitTriangle(Position, Triangle, DiffeoParams):
     p = DiffeoParams['p']
 
     # Compute hyperplane functions
-    posMinVertex=Position[0]-Triangle['vertices_tilde'] # Vectorized version 7/11/2026. Took off 12 seconds of runtime from easyTestPolygon.yml
-    h=np.multiply(posMinVertex[:,0],Triangle['r_tilde_n'][:,0]) + np.multiply(posMinVertex[:,1],Triangle['r_tilde_n'][:,1])
+    posMinVertex=Position[0]-Triangle['vertices_tilde'] # Distance from each point of the collar polygon
+    h=np.multiply(posMinVertex[:,0],Triangle['r_tilde_n'][:,0]) + np.multiply(posMinVertex[:,1],Triangle['r_tilde_n'][:,1]) # Row-wise scalar product
 
     # Compute the R-function and its gradient and hessian
     # DWR 7/11/2026: Can we vectorize this? It takes a total of 2 minutes and 16 seconds to compute insideImplicitTriangle
@@ -1673,6 +1673,13 @@ def insideImplicitTriangle(Position, Triangle, DiffeoParams):
         gammadd = (-(p-1)*((gamma**(p-2))/((gamma**p+h[i]**p)**((p-1)/p)))+(p-1)*((gamma**(2*p-2))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),gammad) + ((p-1)*((gamma**(p-1)*h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),np.array([Triangle['r_tilde_n'][i]])) + (1-((gamma**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*gammadd + (-(p-1)*((h[i]**(p-2))/((gamma**p+h[i]**p)**((p-1)/p)))+(p-1)*((h[i]**(2*p-2))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][i]]).transpose(),np.array([Triangle['r_tilde_n'][i]])) + ((p-1)*((gamma**(p-1)*h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][i]]).transpose(),gammad) + (1-((h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*np.zeros((2,2))
         gammad = (1-((gamma**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*gammad + (1-((h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*np.array([Triangle['r_tilde_n'][i]])
         gamma = gamma + h[i] - (gamma**p+h[i]**p)**(1/p)
+        if (((gamma**p+h[i]**p)**((p-1)/p)) or ((gamma**p+h[i]**p)**((p-1)/p+1)))==0:
+            print(Position)
+            print(Triangle['vertices_tilde'])
+            print(posMinVertex)
+            print(Triangle['r_tilde_n'])
+            print(h)
+            raise Exception("div by zero") # debugging
     return gamma, gammad, gammadd
 
 
@@ -1744,18 +1751,18 @@ def insideImplicitPolygon(Position, PolygonUsed, DiffeoParams):
     p = DiffeoParams['p']
 
     # Compute hyperplane functions
-    hyperplane = np.zeros(PolygonUsed['vertices_tilde'].shape[0])
+    h = np.zeros(PolygonUsed['vertices_tilde'].shape[0])
     for i in range(0, PolygonUsed['vertices_tilde'].shape[0]):
-        hyperplane[i] = np.dot(Position[0]-PolygonUsed['vertices_tilde'][i],PolygonUsed['r_tilde_n'][i])
+        h[i] = np.dot(Position[0]-PolygonUsed['vertices_tilde'][i],PolygonUsed['r_tilde_n'][i])
 
     # Compute the R-function and its gradient and hessian
-    gammadd = (-(p-1)*((hyperplane[0]**(p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p)))+(p-1)*((hyperplane[0]**(2*p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][0]]).transpose(),np.array([PolygonUsed['r_tilde_n'][0]])) + ((p-1)*((hyperplane[0]**(p-1)*hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][0]]).transpose(),np.array([PolygonUsed['r_tilde_n'][1]])) + (1-((hyperplane[0]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.zeros((2,2)) + (-(p-1)*((hyperplane[1]**(p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p)))+(p-1)*((hyperplane[1]**(2*p-2))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][1]]).transpose(),np.array([PolygonUsed['r_tilde_n'][1]])) + ((p-1)*((hyperplane[0]**(p-1)*hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][1]]).transpose(),np.array([PolygonUsed['r_tilde_n'][0]])) + (1-((hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.zeros((2,2))
-    gammad = (1-((hyperplane[0]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.array([PolygonUsed['r_tilde_n'][0]]) + (1-((hyperplane[1]**(p-1))/((hyperplane[0]**p+hyperplane[1]**p)**((p-1)/p))))*np.array([PolygonUsed['r_tilde_n'][1]])
-    gamma = hyperplane[0] + hyperplane[1] - (hyperplane[0]**p+hyperplane[1]**p)**(1/p)
-    for i in range(2,len(hyperplane)):
-        gammadd = (-(p-1)*((gamma**(p-2))/((gamma**p+hyperplane[i]**p)**((p-1)/p)))+(p-1)*((gamma**(2*p-2))/((gamma**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),gammad) + ((p-1)*((gamma**(p-1)*hyperplane[i]**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),np.array([PolygonUsed['r_tilde_n'][i]])) + (1-((gamma**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p))))*gammadd + (-(p-1)*((hyperplane[i]**(p-2))/((gamma**p+hyperplane[i]**p)**((p-1)/p)))+(p-1)*((hyperplane[i]**(2*p-2))/((gamma**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][i]]).transpose(),np.array([PolygonUsed['r_tilde_n'][i]])) + ((p-1)*((gamma**(p-1)*hyperplane[i]**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][i]]).transpose(),gammad) + (1-((hyperplane[i]**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p))))*np.zeros((2,2))
-        gammad = (1-((gamma**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p))))*gammad + (1-((hyperplane[i]**(p-1))/((gamma**p+hyperplane[i]**p)**((p-1)/p))))*np.array([PolygonUsed['r_tilde_n'][i]])
-        gamma = gamma + hyperplane[i] - (gamma**p+hyperplane[i]**p)**(1/p)
+    gammadd = (-(p-1)*((h[0]**(p-2))/((h[0]**p+h[1]**p)**((p-1)/p)))+(p-1)*((h[0]**(2*p-2))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][0]]).transpose(),np.array([PolygonUsed['r_tilde_n'][0]])) + ((p-1)*((h[0]**(p-1)*h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][0]]).transpose(),np.array([PolygonUsed['r_tilde_n'][1]])) + (1-((h[0]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.zeros((2,2)) + (-(p-1)*((h[1]**(p-2))/((h[0]**p+h[1]**p)**((p-1)/p)))+(p-1)*((h[1]**(2*p-2))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][1]]).transpose(),np.array([PolygonUsed['r_tilde_n'][1]])) + ((p-1)*((h[0]**(p-1)*h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][1]]).transpose(),np.array([PolygonUsed['r_tilde_n'][0]])) + (1-((h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.zeros((2,2))
+    gammad = (1-((h[0]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.array([PolygonUsed['r_tilde_n'][0]]) + (1-((h[1]**(p-1))/((h[0]**p+h[1]**p)**((p-1)/p))))*np.array([PolygonUsed['r_tilde_n'][1]])
+    gamma = h[0] + h[1] - (h[0]**p+h[1]**p)**(1/p)
+    for i in range(2,len(h)):
+        gammadd = (-(p-1)*((gamma**(p-2))/((gamma**p+h[i]**p)**((p-1)/p)))+(p-1)*((gamma**(2*p-2))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),gammad) + ((p-1)*((gamma**(p-1)*h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),np.array([PolygonUsed['r_tilde_n'][i]])) + (1-((gamma**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*gammadd + (-(p-1)*((h[i]**(p-2))/((gamma**p+h[i]**p)**((p-1)/p)))+(p-1)*((h[i]**(2*p-2))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][i]]).transpose(),np.array([PolygonUsed['r_tilde_n'][i]])) + ((p-1)*((gamma**(p-1)*h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(np.array([PolygonUsed['r_tilde_n'][i]]).transpose(),gammad) + (1-((h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*np.zeros((2,2))
+        gammad = (1-((gamma**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*gammad + (1-((h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*np.array([PolygonUsed['r_tilde_n'][i]])
+        gamma = gamma + h[i] - (gamma**p+h[i]**p)**(1/p)
 
     return gamma, gammad, gammadd
 

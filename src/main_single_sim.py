@@ -72,9 +72,11 @@ else:
 
 graph=graph_w_names(names,edges)
 
-# Environment.py plotting
+# Environment.py plotting. obsBuffer and collarPolygon are mainly for testing
 figure,visualization=plt.subplots()
 visualization.add_patch(env.workspacePatch())
+visualization.add_patch(env.obstacleBufferPlot())
+visualization.add_patch(env.collarPolygonPlot())
 
 # Network.py plotting (some may be moved into their own categories, like stuff that comes from graph_w_names.py)
 for name in graph.names:
@@ -82,7 +84,7 @@ for name in graph.names:
 for edge in graph.edges:
     visualization.add_patch(net.edgesVisual[edge])
 goalVisual=visualization.plot(net.target[0],net.target[1],'rx')
-qX,qY,qU,qV=net.plotQuiver(net.target.reshape((2,1)))
+qX,qY,qU,qV=net.plotQuiver(net.target.reshape((2,1)),arrowSpacing=0.7)
 visualization.quiver(qX,qY,qU,qV)
 if net.LazyQ:
     titlePlot='Lazy PnP Controller'
@@ -208,6 +210,7 @@ elif solverType == 'nsfPlots':
 elif solverType=="odeInt": #For OdeInt
     flowTime=np.linspace(0,simTime,simTime*framesPerSec)
     print(f"stateVector:{stateVector}")
+    #plt.show()
     #raise Exception("Comment this line out to turn on the ode solver")
     odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
     print(f"odeSol: {odeSol}")

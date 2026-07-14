@@ -243,8 +243,21 @@ class polygonEnv(environment):
 
         # compute and return the pull-back of sphereNavField to the real world:
         #   DWR 7/13/2026: we replaced np.matmul with lu_solve for better numerical stability
-        #return np.matmul(np.linalg.inv(diffeoPosD),sphereNavField))
-        return lu_solve(lu_factor(diffeoPosD),sphereNavField,overwrite_b=True)
+        #return np.matmul(np.linalg.inv(diffeoPosD),sphereNavField)
+        return lu_solve(lu_factor(diffeoPosD),sphereNavField,overwrite_b=True) # Performance looks slightly better, but haven't tested it much
+    
+    def obstacleBufferPlot(self): # used in main_single_sim to plot stuff
+        bufferedPolygons=shapely.buffer(self.ObstacleList,self.DiffeoParams['epsilon'])
+        bufferedPolygons=shapely.difference(bufferedPolygons,self.ObstacleList) # Removes obstacle from buffer for visual clarity
+        return shapely.plotting.plot_polygon(bufferedPolygons,add_points=False,color='red',)
+    
+    def collarPolygonPlot(self): # used in main_single_sim to plot stuff
+        collarList=[]
+        for obs in self.obstacleTrees:
+            for i in range(0,len(self.obstacleTrees[obs])):
+                collarList.append(shapely.geometry.Polygon(self.obstacleTrees[obs][i]['vertices_tilde']))
+        multiPoly=shapely.geometry.MultiPolygon(collarList)
+        return shapely.plotting.plot_polygon(multiPoly,add_points=False,color='blue',)
     
     # def plotObstacles(self,viz): # DWR 7/13/2026: Code currently uses workspace minus obstacles directly for plotting
     #     for obs in self.obstacleData:

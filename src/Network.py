@@ -213,11 +213,11 @@ class netwk():
             self.agents[name].update(ns[a:b,0])
         #return None
 
-    def plotQuiver(self,target):
+    def plotQuiver(self,target,arrowSpacing=0.7):
         [xmin, ymin, xmax, ymax] = shapely.bounds(self.env.workspace)
         
-        xArray=np.arange(xmin,xmax,0.7) # third parameter is arrows per unit length. Smaller=more dense
-        yArray=np.arange(ymin,ymax,0.7)
+        xArray=np.arange(xmin,xmax,arrowSpacing) # third parameter is arrow spacing. Smaller=more dense
+        yArray=np.arange(ymin,ymax,arrowSpacing)
         X,Y=np.meshgrid(xArray,yArray)
         lenX=X.shape
         U=np.zeros((lenX))
