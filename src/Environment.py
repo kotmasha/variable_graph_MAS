@@ -154,7 +154,9 @@ class sphereworldEnv(environment):
 class polygonEnv(environment):    
     def __init__(self,envInfo):
         super().__init__(envInfo)
-        self.DiffeoParams=envInfo['DiffeoParams']
+        self.DiffeoParams={np.float64(envInfo['DiffeoParams'][key]) for key in envInfo['DiffeoParams']}
+        #for key in envInfo['DiffeoParams']:
+        #    self.DiffeoParams[key]=np.float64(self.DiffeoParams[key])            
         Xmin=envInfo['WorkspaceBdry']['Xmin']
         Xmax=envInfo['WorkspaceBdry']['Xmax']
         Ymin=envInfo['WorkspaceBdry']['Ymin']

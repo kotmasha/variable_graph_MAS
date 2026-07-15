@@ -1673,13 +1673,6 @@ def insideImplicitTriangle(Position, Triangle, DiffeoParams):
         gammadd = (-(p-1)*((gamma**(p-2))/((gamma**p+h[i]**p)**((p-1)/p)))+(p-1)*((gamma**(2*p-2))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),gammad) + ((p-1)*((gamma**(p-1)*h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(gammad.transpose(),np.array([Triangle['r_tilde_n'][i]])) + (1-((gamma**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*gammadd + (-(p-1)*((h[i]**(p-2))/((gamma**p+h[i]**p)**((p-1)/p)))+(p-1)*((h[i]**(2*p-2))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][i]]).transpose(),np.array([Triangle['r_tilde_n'][i]])) + ((p-1)*((gamma**(p-1)*h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p+1))))*np.dot(np.array([Triangle['r_tilde_n'][i]]).transpose(),gammad) + (1-((h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*np.zeros((2,2))
         gammad = (1-((gamma**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*gammad + (1-((h[i]**(p-1))/((gamma**p+h[i]**p)**((p-1)/p))))*np.array([Triangle['r_tilde_n'][i]])
         gamma = gamma + h[i] - (gamma**p+h[i]**p)**(1/p)
-        if (((gamma**p+h[i]**p)**((p-1)/p)) or ((gamma**p+h[i]**p)**((p-1)/p+1)))==0:
-            print(Position)
-            print(Triangle['vertices_tilde'])
-            print(posMinVertex)
-            print(Triangle['r_tilde_n'])
-            print(h)
-            raise Exception("div by zero") # debugging
     return gamma, gammad, gammadd
 
 
