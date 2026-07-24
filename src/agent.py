@@ -8,8 +8,7 @@ from numpy import linalg as la
 import numpy as np
 import random
 # from scipy.sparse.csgraph import depth_first_order
-from states import State
-from states import State2ndOrder
+from states import State, State2ndOrder, State2ndOrdRadian
 import universal as uv
 # import rclpy
 # from rclpy.node import Node
@@ -31,14 +30,16 @@ class Agent():
         self.state=state # 6/9/2026 State will always have an attribute called "q" indicating position. It could have others too.
         self.neighbors=network.neighbors(name)
         self.task=task
+
+        self.visualization={}
         # UNCOMMENT THIS WHEN READY; IT IS INTENDED TO STAY HERE
-        # self.visual=patches.Circle(
-        #         uv.col2tup(self.agents[name].pos),
-        #         radius=0.2,
-        #         label=name,
-        #         color='purple' if name in self.leaders else 'orange',
-        #         animated=True,
-        #         )
+        self.visualization['vertex']=patches.Circle(
+                uv.col2tup(self.state.q),
+                radius=0.2,
+                label=name,
+                color='orange',
+                animated=True,
+                )
 
         # self.addEgde=self.create_service(AddEdge,'AddEdge',)
         # #Define parameters here
@@ -98,8 +99,8 @@ class Agent():
     
 class fullyActuatedAgent(Agent):
     def __init__(self,name,env,network,task,state):
+        state=State(np.array(state['q']).T)
         super().__init__(name,env,network,task,state)
-        self.state=State(np.array(state['q']).T)
     
     def dynamics(self,controlInput,inputState=None): # implementation of xdot=f(x,u)=u
         if inputState is None:
@@ -141,16 +142,16 @@ class fullyActuatedAgent(Agent):
 
 class unicycleAgent(Agent): #Will use 2nd order state from states.py
     def __init__(self,name,env,network,task,state):
+        state=State2ndOrder(np.vstack(((np.matrix(state['q'])).T,(np.matrix(state['p'])).T)))
         super().__init__(name,env,network,task,state)
-        self.state=State2ndOrder(np.vstack(((np.matrix(state['q'])).T,(np.matrix(state['p'])).T)))
         # self.pose=yaw
 
     def dynamics(self,controlInput,inputState=None):
     # Proposed inputs: controlInput is
         if inputState is None:
             inputState=self.state
-        qdot=controlInput[0]*self.state.p # Matches notation in the unicycle paper
-        pdot=controlInput[1]*skewJ*self.state.p
+        qdot=controlInput[0]*inputState.p # Matches notation in the unicycle paper
+        pdot=controlInput[1]*skewJ*inputState.p
         return np.vstack((qdot,pdot))
 
     # def nav(self,goal): # DWR 6/23/2026: Not sure if it needs its own navigation function classed here or not
@@ -220,20 +221,23 @@ class unicycleAgent(Agent): #Will use 2nd order state from states.py
     # testing notes:
     #   Set dummy values for eta, alpha, and beta
 
+class unicycleAgent2022(Agent):
+    def __init__(self,name,env,network,task,state):
+        if not(np.size(state['p'])==1):
+            raise Exception("Heading should be radian")
+        state=State2ndOrdRadian(np.vstack(((np.matrix(state['q'])).T,(np.matrix(state['p'])).T)))
+        super().__init__(name,env,network,task,state)
 
+        # DWR self notes for writing Vasilos' unicycle code:
+        #   refer to pg 101 in Vasilos 2022 paper.
+        #   Mapped space is polygon world after object inflation, model space is sphere world
 
+        # DWR -> Dan G questions list:
+        #   What is the difference between SE(2) and R2?
+        
 
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
+    def dynamics(self,controlInput,inputState=None):
+        # Refer to section 5.1.2 definition 32 in vasilos 2022
+        # DWR question to Dan G: where it says (v,w) in that definition, is that a square matrix with v and w and columns?
+        Bmatrix=np.matrix([[np.cos(controlInput[2]),0],[np.sin(controlInput[2]),0],[0,1]])
+        xbar=np.matmul(Bmatrix,)

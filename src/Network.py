@@ -21,11 +21,12 @@ from graph_w_names import graph_w_names
 from states import State
 
 class netwk():
-    def __init__(self,networkInfo,env):
+    def __init__(self,networkInfo,env,visualDict):
         self.networkInfo=networkInfo # 6/15/26: Used to get definitions outside __init__ working; should probably be removed/changed later.
         self.netID=networkInfo['netID']
         self.simTime=networkInfo['networkInfo']['Duration']
         self.env=env
+        # visualDict is a dictionary of axes objects that can accept an add_patch command
         
         # DWR 6/15/26: I remember we wanted to combine this with the agent calling loop, but calling agents.py requires self.graph, so this has to come first.
         self.agentNames=list(networkInfo['networkInfo']['Agents']['AgentInfo']) #form a list of the keys in the agent dictionary
@@ -116,79 +117,38 @@ class netwk():
         
         # 6/9/2026: Starting from here & below, need to rewrite the ntwork visualization code into generic code
 
-        self.agentSpawn=1 # dummy value to replace input from __init__. Should be rewritten
-        if self.agentSpawn and self.graph.edges!=None:
-            self.task=agentask(self.graph,networkInfo['networkInfo']['Agents']['AgentInfo']) # 6/16/2026 DWR: Going with the task-oriented instead of leader-based approach
-            self.populate(self.mode)
-            
-            # form dictionary of agent position visual representations
-            self.verticesVisual={name:patches.Circle(
-                #uv.col2tup(self.agents[name].pos),
-                uv.col2tup(np.matrix(self.agents[name].state.q)), #not sure if the matrix conversion is the best way to do this
-                radius=0.2,
-                label=name,
-                #color='purple' if name in self.leaders else 'orange',
-                color='purple',
-                animated=True,
-                ) for name in self.graph.names}
+        self.populate(self.mode) # Input and implementation TBD
 
-            # form dictionary of agent edges visual representations
-            self.edgesVisual={edge:patches.Polygon(
-                np.asarray(np.hstack((np.array(self.agents[self.graph.indexToVertex[edge[0]]].state.q),np.array(self.agents[self.graph.indexToVertex[edge[1]]].state.q)))),
-                closed=False,
-                edgecolor='black',                                                              
-                linestyle='-',
-                animated=True,
-                ) for edge in self.graph.edges}
-            
-            self.target=np.array((networkInfo['networkInfo']['networkTask']['Goals']['Goal1']))
-            
-            #self.env.plotObstacles(self.visualization)
-            # self.visualization.set(title=titlePlot,xlabel='Workspace x-axis [m]', ylabel='Workspace y-axis [m]')
-            #self.visualization.grid(False)
-            # self.figure.legend(loc='upper left',title='Agents')
+        # form dictionary of agent position visual representations
+        self.verticesVisual={} # If line 132 fails, try double braces like {{}}
+        self.edgesVisual={}
 
-
-
-
-        elif self.agentSpawn and self.agentNum==1: # Needs to be cleaned up
-            for agentName in networkInfo['Agents']['AgentInfo']: # 6/10/26 Dan code with minor edits by Davy
-                self.agents[agentName]=getattr(agent,agentName['Type'])(**agentName['State'])
-            # for name,pos in self.stateWname:
-            #     self.agents[name]=Agent(name, self.env, self,{'target': np.array([[9],[9]]), 'keepUpQ': False}, np.array(pos).reshape((2,1)))
-            self.figure,self.visualization=plt.subplots()
-            # self.figure=self.visualization.get_figure()       
-            # self.workspacePatch=shapely.plotting.plot_polygon(self.env.workspace,add_points=False)
-            # self.visualization.add_patch(self.workspacePatch)
-            # form dictionary of agent position visual representations
-
-            self.verticesVisual={name:patches.Circle(
-                uv.col2tup(self.agents[name].pos),
-                radius=0.2,
-                label=name,
-                color='purple' if name in self.leaders else 'orange',
-                # animated=True,
-                ) for name in self.graph.names}
+        for vis in visualDict:
             for name in self.graph.names:
-                self.visualization.add_patch(self.verticesVisual[name])
-            self.goalVisual=self.visualization.plot(self.leaders['Zoe']['Target'][0],self.leaders['Zoe']['Target'][1],'rx',markersize=12, markeredgewidth=3)
-            target=np.array([9,9])
-            self.plotQuiver(target)
-            self.env.plotObstacles(self.visualization)
-            plt.grid(False)
-            # plt.show()
+                #for key in self.agents[name].visualizationKeyList:
+                self.verticesVisual[name]={}
+                for key in self.agents[name].visualization:
+                    vertexPatch=self.agents[name].visualization[key]
+                    self.verticesVisual[name][key]=vertexPatch
+                    visualDict[vis].add_patch(vertexPatch)
+            for edge in self.graph.edges:
+                edgePatch=patches.Polygon(
+                    np.asarray(np.hstack((np.array(self.agents[self.graph.indexToVertex[edge[0]]].state.q),np.array(self.agents[self.graph.indexToVertex[edge[1]]].state.q)))),
+                    closed=False,
+                    edgecolor='black',                                                              
+                    linestyle='-',
+                    animated=True,
+                    )
+                self.edgesVisual[edge]=edgePatch
+                visualDict[vis].add_patch(edgePatch)
+        
+        #DWR 7/17/2026: put all goals into the visualization
+        #self.target=np.array((networkInfo['networkInfo']['networkTask']['Goals']['Goal1']))
 
-            
-        elif not self.agentSpawn:
-            self.figure,self.visualization=plt.subplots()
-            # self.figure=self.visualization.get_figure()       
-            self.workspacePatch=shapely.plotting.plot_polygon(self.env.workspace,add_points=False)
-            self.visualization.add_patch(self.workspacePatch)
-            #plot nav field
-            target=np.array([9,9])
-            self.plotQuiver(target)
-            sys.exit()
-
+        #self.env.plotObstacles(self.visualization)
+        # self.visualization.set(title=titlePlot,xlabel='Workspace x-axis [m]', ylabel='Workspace y-axis [m]')
+        #self.visualization.grid(False)
+        # self.figure.legend(loc='upper left',title='Agents')
 
     def tick(self,t=None):
         if t is None:
@@ -213,27 +173,14 @@ class netwk():
             self.agents[name].update(ns[a:b,0])
         #return None
 
-    def plotQuiver(self,target,arrowSpacing=0.7):
-        [xmin, ymin, xmax, ymax] = shapely.bounds(self.env.workspace)
-        
-        xArray=np.arange(xmin,xmax,arrowSpacing) # third parameter is arrow spacing. Smaller=more dense
-        yArray=np.arange(ymin,ymax,arrowSpacing)
-        X,Y=np.meshgrid(xArray,yArray)
-        lenX=X.shape
-        U=np.zeros((lenX))
-        V=np.zeros((lenX))
-        maxX=lenX[0]
-        for idx in range(maxX):
-            for idy in range(maxX):
-                state=np.array([X[idx, idy], Y[idx, idy]]).reshape((2,1))
-                goal=(target) # Do not convert state and goal into matrices. QPsolvers only accepts arrays
-                if (self.env.ObsCheck(state)): # obsCheck checks if point is inside workspace minus obstacles
-                    navV=self.env.nav(goal,state)
-                    U[idx,idy]=navV[0,0]
-                    V[idx,idy]=navV[1,0]
-
-        return X, Y, U, V
-        # plt.show()
+    def headingPlot(self):
+        X,Y,U,V=np.zeros(len(self.agentNames))
+        for i in range(0,len(self.agentNames)):
+            X[i]=self.networkInfo['Agents']['AgentInfo'][self.agentNames[i]]['q'][0]
+            Y[i]=self.networkInfo['Agents']['AgentInfo'][self.agentNames[i]]['q'][1]
+            U[i]=self.networkInfo['Agents']['AgentInfo'][self.agentNames[i]]['p'][0]
+            V[i]=self.networkInfo['Agents']['AgentInfo'][self.agentNames[i]]['p'][1]
+        return X,Y,U,V
 
 
     def FlowMap(self, y, t):
@@ -245,6 +192,17 @@ class netwk():
             a,b=self.stateVectorInfo[name]
             dydt[a:b,0]=(self.agents[name].clientOutputSim(np.matrix(xStack))).flatten()
         return dydt.flatten() # DWR 6/23/2026: Odeint threw a "ndim=2" error until I flattened it
+    
+    # Identical to FlowMap, but with t and y swapped in input. Created to accomodate scipy solve_ivp instead of scipy odeint
+    def FlowMapSwapInput(self,t,y):
+        xStack = y.reshape(-1, 1)  # Reshape input to column vector (ODE solver inputs and outputs row state vectors)
+        dydt = np.zeros_like(xStack)
+
+        for name in self.agents:
+            # obtain the state of the current agent in the loop
+            a,b=self.stateVectorInfo[name]
+            dydt[a:b,0]=(self.agents[name].clientOutputSim(np.matrix(xStack))).flatten()
+        return dydt.flatten()
 
     # def pnpFlowMap(self,y,t):
 

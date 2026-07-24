@@ -96,6 +96,7 @@ class sphereworldEnv(environment):
             ub=0.5*(self.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
         )
         #solve the QP problem
+        #solver list: https://pypi.org/project/qpsolvers/
         result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,lb=prob.lb,ub=prob.ub,solver='piqp',initvals=(pos-goal))
         if result is None:
             result=np.zeros((np.size(goal),1))
@@ -154,9 +155,10 @@ class sphereworldEnv(environment):
 class polygonEnv(environment):    
     def __init__(self,envInfo):
         super().__init__(envInfo)
-        self.DiffeoParams={np.float64(envInfo['DiffeoParams'][key]) for key in envInfo['DiffeoParams']}
-        #for key in envInfo['DiffeoParams']:
-        #    self.DiffeoParams[key]=np.float64(self.DiffeoParams[key])            
+        #self.DiffeoParams={np.float64(envInfo['DiffeoParams'][key]) for key in envInfo['DiffeoParams']}
+        self.DiffeoParams={}
+        for key in envInfo['DiffeoParams']:
+            self.DiffeoParams[key]=np.float64(envInfo['DiffeoParams'][key])            
         Xmin=envInfo['WorkspaceBdry']['Xmin']
         Xmax=envInfo['WorkspaceBdry']['Xmax']
         Ymin=envInfo['WorkspaceBdry']['Ymin']

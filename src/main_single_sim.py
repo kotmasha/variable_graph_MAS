@@ -2,8 +2,9 @@
 import os
 import sys
 import Environment
-import numpy as np
+
 import yaml
+import numpy as np
 from Obstacle import shapelyObstacle
 from graph_w_names import graph_w_names
 from Network import netwk
@@ -11,7 +12,7 @@ import matplotlib.pyplot as plt
 import shapely
 from time import sleep
 import matplotlib.animation as animation
-from scipy.integrate import odeint
+from scipy.integrate import odeint, solve_ivp
 from matplotlib.animation import FuncAnimation, PillowWriter
 from datetime import datetime
 from matplotlib.lines import Line2D
@@ -48,11 +49,49 @@ names=[]
 for agentName in data['Network']['networkInfo']['Agents']['AgentInfo']:
     names.append(agentName)
 
+def plotQuiver(target,arrowSpacing=0.7): # modify to change the fact that it was in network.py
+    [xmin, ymin, xmax, ymax] = shapely.bounds(env.workspace)
+    
+    xArray=np.arange(xmin,xmax,arrowSpacing) # third parameter is arrow spacing. Smaller=more dense
+    yArray=np.arange(ymin,ymax,arrowSpacing)
+    X,Y=np.meshgrid(xArray,yArray)
+    lenX=X.shape
+    U=np.zeros((lenX))
+    V=np.zeros((lenX))
+    maxX=lenX[0]
+    for idx in range(maxX):
+        for idy in range(maxX):
+            state=np.array([X[idx, idy], Y[idx, idy]]).reshape((2,1))
+            goal=(target) # Do not convert state and goal into matrices. QPsolvers only accepts arrays
+            if (env.ObsCheck(state)): # obsCheck checks if point is inside workspace minus obstacles
+                navV=env.nav(goal,state)
+                U[idx,idy]=navV[0,0]
+                V[idx,idy]=navV[1,0]
+
+    return X, Y, U, V
+    # plt.show()
+
 # Initialize the environment
 env=getattr(Environment,data['EnvType'])(data['EnvInfo'])
 
+# Initialize the visualization
+figure,visualization=plt.subplots()
+visualDict={}
+visualDict['environmentPlot']=visualization
+# network visualization must happen after environment is visualized
+
+# Environment.py plotting. obsBuffer and collarPolygon are mainly for testing
+visualization.add_patch(env.workspacePatch())
+#visualization.add_patch(env.obstacleBufferPlot())
+#visualization.add_patch(env.collarPolygonPlot())
+
+# Quiver plotting
+target=np.array((data['Network']['networkInfo']['networkTask']['Goals']['Goal1'])).reshape((2,1))
+qX,qY,qU,qV=plotQuiver(target,arrowSpacing=0.7)
+visualization.quiver(qX,qY,qU,qV)
+
 # Initialize the network
-net=netwk(data['Network'],env)
+net=netwk(data['Network'],env,visualDict)
 stateVector=net.formNetworkStateVector() # for later use in solving ODEs
 
 ###DAN'S BS HERE
@@ -72,20 +111,7 @@ else:
 
 graph=graph_w_names(names,edges)
 
-# Environment.py plotting. obsBuffer and collarPolygon are mainly for testing
-figure,visualization=plt.subplots()
-visualization.add_patch(env.workspacePatch())
-visualization.add_patch(env.obstacleBufferPlot())
-visualization.add_patch(env.collarPolygonPlot())
-
 # Network.py plotting (some may be moved into their own categories, like stuff that comes from graph_w_names.py)
-for name in graph.names:
-    visualization.add_patch(net.verticesVisual[name])
-for edge in graph.edges:
-    visualization.add_patch(net.edgesVisual[edge])
-goalVisual=visualization.plot(net.target[0],net.target[1],'rx')
-qX,qY,qU,qV=net.plotQuiver(net.target.reshape((2,1)),arrowSpacing=0.7)
-visualization.quiver(qX,qY,qU,qV)
 if net.LazyQ:
     titlePlot='Lazy PnP Controller'
 else:
@@ -103,7 +129,7 @@ def updateAni(content): # Content is assumed to be a tuple containing timestamp,
     # one tick of the network clock
     net.tick(timeStamp)
     # update the visualization data
-    net.updateVisualization()
+    net.updateVisualization() # needs to be updated in network.py to reflect changes to how visualization works
 
 def plot_multi_agent_trajectories(net, odeSol, flowTime):
     num_agents = len(net.graph.names)
@@ -209,19 +235,21 @@ elif solverType == 'nsfPlots':
 
 elif solverType=="odeInt": #For OdeInt
     flowTime=np.linspace(0,simTime,simTime*framesPerSec)
-    print(f"stateVector:{stateVector}")
     #plt.show()
     #raise Exception("Comment this line out to turn on the ode solver")
+    print(stateVector)
     odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
+    # odeObj=solve_ivp(net.FlowMapSwapInput,[0,simTime],stateVector.flatten(),method='RK45')
+    # odeSol=odeObj['y'].transpose() # solve_ivp has y as columns left to right, whereas our code wants y as rows up to down
     print(f"odeSol: {odeSol}")
     print(f"odeSol shape: {np.shape(odeSol)}")
-    odeTimeStamps=np.insert(output_dict['tcur'],0,0) # odeSol includes the starting t=0 frame, but t=0 is not included in tcur
-    odeTimeStamps,odeSol=frameCull(odeTimeStamps,odeSol,maxTime=simTime,desiredNframes=Nframes)
     plt.plot(odeSol[:,0],odeSol[:,1],'b--')
     plot_multi_agent_trajectories(net, odeSol, flowTime)
     plt.title('ODE Solution for Multiple Agents')
     plt.show()
     raise Exception("Comment this line out to turn on the video")
+    odeTimeStamps=np.insert(output_dict['tcur'],0,0) # odeSol includes the starting t=0 frame, but t=0 is not included in tcur
+    odeTimeStamps,odeSol=frameCull(odeTimeStamps,odeSol,maxTime=simTime,desiredNframes=Nframes)
     ani=animation.FuncAnimation(
         fig=net.figure,
         func=updateAni,

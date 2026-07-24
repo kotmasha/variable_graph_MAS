@@ -18,7 +18,7 @@ class State(): # Class for representing state vectors
             return self.q
         else:
             return vec
-
+#DWR 7/23/2026: Look at the calls as made in agent.py/unicycleAgent. Seems backwards to vstack them in input then separate them again
 class State2ndOrder(State):
     def __init__(self,stateVec): # stateVec is numpy column matrix with even number of entries
         s=np.size(stateVec)
@@ -42,3 +42,28 @@ class State2ndOrder(State):
             return self.q
         else:
             return vec[0:len(vec)//2,0]
+
+class State2ndOrdRadian(State):
+    def __init__(self,stateVec): # stateVec is numpy column matrix with 2 position coords, and one radian coord as heading
+            s=np.size(stateVec)
+            stateVec=stateVec.reshape(-1,1)
+            super().__init__(stateVec[0:(s-2),0])
+            self.p=np.matrix(stateVec[(s-2):(s-1),0])
+
+    def flatten(self):#Goal: put q and p together as a single column vector and return it
+        return np.concatenate((self.q,self.p)).T
+
+    def size(self): 
+        return self.flatten().size
+    
+    def update(self,flattened_new_state): # updates the state based on a flattened vector representation, which must be a numpy column matrix
+        s=self.size(flattened_new_state)
+        self.q=flattened_new_state[0:s//2,0]
+        self.p=flattened_new_state[s//2:s,0]
+
+    def pos(self,vec=None): # returns the position component of the state/of the input vector vec; vec must be a numpy column matrix
+        if vec is None:
+            return self.q
+        else:
+            return vec[0:len(vec)//2,0]
+    
