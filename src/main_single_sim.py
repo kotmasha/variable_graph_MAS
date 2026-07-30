@@ -235,8 +235,8 @@ elif solverType == 'nsfPlots':
 
 elif solverType=="odeInt": #For OdeInt
     flowTime=np.linspace(0,simTime,simTime*framesPerSec)
-    #plt.show()
-    #raise Exception("Comment this line out to turn on the ode solver")
+    # plt.show()
+    # raise Exception("Comment this line out to turn on the ode solver")
     print(stateVector)
     odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
     # odeObj=solve_ivp(net.FlowMapSwapInput,[0,simTime],stateVector.flatten(),method='RK45')

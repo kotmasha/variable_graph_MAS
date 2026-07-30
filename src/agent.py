@@ -10,13 +10,13 @@ import random
 # from scipy.sparse.csgraph import depth_first_order
 from states import State, State2ndOrder, State2ndOrdRadian
 import universal as uv
+from myGeometryTools import skewJ
 # import rclpy
 # from rclpy.node import Node
 # from geometry_msgs.msg import Twist, PoseStamped
 # from tf_transformations import quaternion_from_euler
 
 # Future goal: Design agent class as a "parent" with minimal functionality, and re-structure for a fully-actuated and a unicycle agent separately.
-skewJ = np.array([[0, -1],[1,0]]) # If you need it outside the file, write agent.skewJ
 
 
 
@@ -225,8 +225,20 @@ class unicycleAgent2022(Agent):
     def __init__(self,name,env,network,task,state):
         if not(np.size(state['p'])==1):
             raise Exception("Heading should be radian")
-        state=State2ndOrdRadian(np.vstack(((np.matrix(state['q'])).T,(np.matrix(state['p'])).T)))
+        state=State2ndOrdRadian(np.vstack(((np.matrix(state['q'])).T,(np.matrix(state['p'])).T))) #state=self.state is done in super()
         super().__init__(name,env,network,task,state)
+        angle=self.state.angle
+        rotator=np.matrix([[np.cos(angle),-np.sin(angle)],[np.sin(angle),np.cos(angle)]])
+        headingVector=rotator*np.matrix([[1],[0]])
+        self.visualization['heading']=patches.Arrow(
+            self.state.q[0,0],
+            self.state.q[1,0],
+            headingVector[0,0],
+            headingVector[1,0],
+            color='purple',
+            animated=True,
+        )
+
 
         # DWR self notes for writing Vasilos' unicycle code:
         #   refer to pg 101 in Vasilos 2022 paper.
@@ -237,7 +249,31 @@ class unicycleAgent2022(Agent):
         
 
     def dynamics(self,controlInput,inputState=None):
-        # Refer to section 5.1.2 definition 32 in vasilos 2022
-        # DWR question to Dan G: where it says (v,w) in that definition, is that a square matrix with v and w and columns?
-        Bmatrix=np.matrix([[np.cos(controlInput[2]),0],[np.sin(controlInput[2]),0],[0,1]])
-        xbar=np.matmul(Bmatrix,)
+        if inputState is None:
+            inputState=self.state
+        B=np.matrix([[np.cos(inputState.state.p),0.],[np.sin(inputState.state.p),0.],[0.,1]])
+        return B*controlInput
+
+    def computeController(self,virtualState=None):  # See algorithm 4.2 in thesis for more info.
+        # So far, being programmed for sphereworld. Will be extended to allow polygon later
+        my_pos=self.own_state(virtualState).pos()
+        my_heading=self.own_state(virtualState).myAngle()
+        # Prepare "empty" control input vector
+        controlInput=np.zeros_like(np.vstack((my_pos,np.array(my_heading)))) # not sure if vstack or hstack
+        # Calculate the navigation-to-goal component
+        if 'Target' in self.task:
+            targ=np.matrix(np.reshape(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']],shape=np.shape(my_pos)))
+            projectedGoal=self.env.navUni2022(targ,self.state.pos(),self.state.angle)
+            velocity=-1*np.matrix([np.cos(my_heading),np.sin(my_heading)])*(my_pos-projectedGoal)
+            angularV=np.arctan( (np.matrix([-1*np.sin(my_heading),np.cos(my_heading)])*(my_pos-projectedGoal)) / (np.matrix([np.cos(my_heading),np.sin(my_heading)])*(my_pos-projectedGoal)) )
+
+        controlInput[0:len(controlInput)-2]=velocity
+        controlInput[-1]=angularV
+        
+        return controlInput
+
+    def navf(self,goal,inputPos=None): # both goal and inputPos are position vectors (column matrices)
+        if inputPos is None:
+            return self.env.navUni2022(goal,self.state.pos())
+        else:
+            return self.env.navUni2022(goal,inputPos)

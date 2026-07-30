@@ -7,6 +7,7 @@ import shapely.plotting
 import shapely.geometry as geom
 from shapely.ops import unary_union
 import reactive_planner_lib
+from myGeometryTools import skewJ
 
 from Obstacle import shapelyObstacle
 # from scipy.optimize import minimize
@@ -106,6 +107,13 @@ class sphereworldEnv(environment):
         # Computes the coefficient matrix describing the safe polytope at the point z
         return np.subtract(self.obstacleCenters,pos.T)
 
+    def safetyMatrixUni2022(self,pos,heading):
+        # Based off semnav_matlab localworkspaceLIDAR2Dunicycle
+        startMatrix=self.safetyMatrix(pos)
+        LWLinear=
+        LWAngle1=
+        LWAngle2=
+
     def obstacleDist(self,pos):
         # Computes the column vector of distances of z to the obstacle centers
         # DWR 7/11/2026: Need to find a way to vectorise this. It is the most costly function aside from qpsolvers, using 3 seconds total.
@@ -125,6 +133,42 @@ class sphereworldEnv(environment):
         cons=self.safetyMatrix(pos)
         b=b+0.5*(np.power(dists,2) - np.multiply(self.obstacleRadii.reshape(-1,1),dists))+cons @ (pos-goal.reshape((np.size(goal),1))) 
         return np.array(b)
+
+    def navUni2022(self,goal,pos,heading):
+        # set up a qp-solve problem for the projection of the goal to the safe polygon
+        goal=np.array(goal) # DWR 6/23/2026 followup: Unfortunately, qpsolvers does not like matrices.
+        pos=np.array(pos)
+        heading=np.array(heading)
+        # Angular local goal setup
+        HgProb=qpsolvers.problem.Problem(
+            np.eye(np.size(goal)),  # minimizing squared norm
+            np.zeros((np.size(goal),1)), # no linear component in this QP
+            A=np.matmul((goal-pos).transpose(),skewJ), #equality constraint matrix # check to make sure the transpose works
+            b=np.array([0]),  # equality constraint coefficient
+            G=self.safetyMatrix(pos),   # DWR 7/30/2026: According to matlab code, a different safety matrix is used for unicycle
+            h=self.safetyCoefficients(goal,pos), # safety constraints coefficients
+            lb=0.5*(self.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
+            ub=0.5*(self.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
+        )
+        # Linear local goal setup
+        HparProb=qpsolvers.problem.Problem(
+            np.eye(np.size(goal)),  # minimizing squared norm
+            np.zeros((np.size(goal),1)), # no linear component in this QP
+            A=np.array([-np.sin(heading),np.cos(heading)]), #equality constraint matrix, check to see if row shape works instead of column
+            b=np.array([0]),  # equality constraint coefficient
+            G=self.safetyMatrix(pos),   # safety constraints matrix
+            h=self.safetyCoefficients(goal,pos), # safety constraints coefficients
+            lb=0.5*(self.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
+            ub=0.5*(self.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
+        )
+        resultHg=qpsolvers.solve_qp(P=HgProb.P,q=HgProb.q,G=HgProb.G,h=HgProb.h,A=HgProb.A,b=HgProb.b,lb=HgProb.lb,ub=HgProb.ub,solver='piqp',initvals=(pos-goal))
+        resultHpar=qpsolvers.solve_qp(P=HparProb.P,q=HparProb.q,G=HparProb.G,h=HparProb.h,A=HparProb.A,b=HparProb.b,lb=HparProb.lb,ub=HparProb.ub,solver='piqp',initvals=(pos-goal))
+        if resultHg is None: resultHg=np.zeros((np.size(goal),1))
+        if resultHpar is None: resultHpar=np.zeros((np.size(goal),1))
+        print(resultHg)
+        print(resultHpar)
+        # raise Exception("still coding")
+        return np.matrix(goal+result.reshape((np.size(goal),1))-pos)
     
     def inCircle(self,idx,idy,oc,oR):
         return (idx-oc[0])**2 + (idy-oc[1])**2 <= oR**2

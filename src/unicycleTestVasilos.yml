@@ -51,7 +51,7 @@ Network:
             Target: 'Goal1'
             KeepUpQ: False
         Bravo:
-          Type: "unicycleAgent"
+          Type: "unicycleAgent2022"
           State:
             q: [[1.33, 1.]]
             p: [[1.57]]
@@ -59,7 +59,7 @@ Network:
             Target: 'Goal1'
             KeepUpQ: False
         Charlie:
-          Type: "unicycleAgent"
+          Type: "unicycleAgent2022"
           State:
             q: [[0.67, 0.67]]
             p: [[1.57]]
@@ -67,7 +67,7 @@ Network:
             Target: 'Goal1'
             KeepUpQ: False
         Delta:
-          Type: "unicycleAgent"
+          Type: "unicycleAgent2022"
           State:
             q: [[0.33, 0.33]]
             p: [[1.57]]
@@ -75,7 +75,7 @@ Network:
             Target: 'Goal1'
             KeepUpQ: False
         Echo:
-          Type: "unicycleAgent"
+          Type: "unicycleAgent2022"
           State:
             q: [[1., 0.33]]
             p: [[1.57]]
@@ -83,7 +83,7 @@ Network:
             Target: 'Goal1'
             KeepUpQ: False
         Foxtrot:
-          Type: "unicycleAgent"
+          Type: "unicycleAgent2022"
           State:
             q: [[1.67, 0.67]]
             p: [[1.57]]
@@ -91,7 +91,7 @@ Network:
             Target: 'Goal1'
             KeepUpQ: False
         Golf:
-          Type: "unicycleAgent"
+          Type: "unicycleAgent2022"
           State:
             q: [[2.67, 1.]]
             p: [[1.57]]
@@ -99,7 +99,7 @@ Network:
             Target: 'Goal1'
             KeepUpQ: False
         Hotel:
-          Type: "unicycleAgent"
+          Type: "unicycleAgent2022"
           State:
             q: [[3.33, 0.67]]
             p: [[1.57]]
@@ -107,7 +107,7 @@ Network:
             Target: 'Goal1'
             KeepUpQ: False
         India:
-          Type: "unicycleAgent"
+          Type: "unicycleAgent2022"
           State:
             q: [[3.67, 0.33]]
             p: [[1.57]]
@@ -115,7 +115,7 @@ Network:
             Target: 'Goal1'
             KeepUpQ: False
         Juliett:
-          Type: "unicycleAgent"
+          Type: "unicycleAgent2022"
           State:
             q: [[3., 0.33]]
             p: [[1.57]]
@@ -123,7 +123,7 @@ Network:
             Target: 'Goal1'
             KeepUpQ: False
         Kilo:
-          Type: "unicycleAgent"
+          Type: "unicycleAgent2022"
           State:
             q: [[2.33, 0.67]]
             p: [[1.57]]
