@@ -76,9 +76,16 @@ env=getattr(Environment,data['EnvType'])(data['EnvInfo'])
 
 # Initialize the visualization
 figure,visualization=plt.subplots()
+visualization.set_xlim(0,10) # find a better way to do this based on the workspace info in the yml
+visualization.set_ylim(0,10)
 visualDict={}
 visualDict['environmentPlot']=visualization
 # network visualization must happen after environment is visualized
+
+def showSafePolygon(pos):
+    #Input: position as column nparray. npmatrix may work as well, haven't tested yet
+    #Action: Adds the safe polygon patch to the visualization
+    visualization.add_patch(env.localFreespacePatch(pos))
 
 # Environment.py plotting. obsBuffer and collarPolygon are mainly for testing
 visualization.add_patch(env.workspacePatch())
@@ -111,16 +118,21 @@ else:
 
 graph=graph_w_names(names,edges)
 
-# Network.py plotting (some may be moved into their own categories, like stuff that comes from graph_w_names.py)
+# Network.py plotting (some may be moved into their own categories, like stuff that comes from graph_w_names.py
+#hack-fix because matplotlib is annoying
+for name in net.verticesVisual:
+    for key in net.verticesVisual[name]:
+        visualization.add_patch(net.verticesVisual[name][key])
+
 if net.LazyQ:
     titlePlot='Lazy PnP Controller'
 else:
     titlePlot='Contractive PnP Controller'
 
 # misc. plotting
-visualization.grid(False)
+showSafePolygon(np.array([[2.],[1.67]]))
+visualization.grid(False) # Do this last
 # Trajectory plotting is handled by plot_multi_agent_trajectories
-
 
 def updateAni(content): # Content is assumed to be a tuple containing timestamp,networkState,net
     timeStamp,networkState,net=content

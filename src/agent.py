@@ -6,6 +6,7 @@ import math
 import matplotlib.patches as patches
 from numpy import linalg as la
 import numpy as np
+import qpsolvers
 import random
 # from scipy.sparse.csgraph import depth_first_order
 from states import State, State2ndOrder, State2ndOrdRadian
@@ -227,14 +228,15 @@ class unicycleAgent2022(Agent):
             raise Exception("Heading should be radian")
         state=State2ndOrdRadian(np.vstack(((np.matrix(state['q'])).T,(np.matrix(state['p'])).T))) #state=self.state is done in super()
         super().__init__(name,env,network,task,state)
-        angle=self.state.angle
-        rotator=np.matrix([[np.cos(angle),-np.sin(angle)],[np.sin(angle),np.cos(angle)]])
-        headingVector=rotator*np.matrix([[1],[0]])
+
+        rotator=np.matrix([[np.cos(state.angle),-np.sin(state.angle)],[np.sin(state.angle),np.cos(state.angle)]])
+        headingVector=rotator*np.matrix([[1.],[0.]])
         self.visualization['heading']=patches.Arrow(
-            self.state.q[0,0],
-            self.state.q[1,0],
-            headingVector[0,0],
-            headingVector[1,0],
+            x=self.state.q[0,0],
+            y=self.state.q[1,0],
+            dx=headingVector[0,0],
+            dy=headingVector[1,0],
+            alpha=1,
             color='purple',
             animated=True,
         )
@@ -244,36 +246,72 @@ class unicycleAgent2022(Agent):
         #   refer to pg 101 in Vasilos 2022 paper.
         #   Mapped space is polygon world after object inflation, model space is sphere world
 
-        # DWR -> Dan G questions list:
-        #   What is the difference between SE(2) and R2?
-        
-
     def dynamics(self,controlInput,inputState=None):
         if inputState is None:
             inputState=self.state
-        B=np.matrix([[np.cos(inputState.state.p),0.],[np.sin(inputState.state.p),0.],[0.,1]])
+        B=np.matrix([[np.cos(inputState.angle),0.],[np.sin(inputState.angle),0.],[0.,1]])
         return B*controlInput
 
     def computeController(self,virtualState=None):  # See algorithm 4.2 in thesis for more info.
         # So far, being programmed for sphereworld. Will be extended to allow polygon later
         my_pos=self.own_state(virtualState).pos()
-        my_heading=self.own_state(virtualState).myAngle()
+        my_heading=np.array(self.own_state(virtualState).myAngle()) # nparray for qpsolvers
         # Prepare "empty" control input vector
         controlInput=np.zeros_like(np.vstack((my_pos,np.array(my_heading)))) # not sure if vstack or hstack
         # Calculate the navigation-to-goal component
         if 'Target' in self.task:
             targ=np.matrix(np.reshape(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']],shape=np.shape(my_pos)))
-            projectedGoal=self.env.navUni2022(targ,self.state.pos(),self.state.angle)
-            velocity=-1*np.matrix([np.cos(my_heading),np.sin(my_heading)])*(my_pos-projectedGoal)
-            angularV=np.arctan( (np.matrix([-1*np.sin(my_heading),np.cos(my_heading)])*(my_pos-projectedGoal)) / (np.matrix([np.cos(my_heading),np.sin(my_heading)])*(my_pos-projectedGoal)) )
 
-        controlInput[0:len(controlInput)-2]=velocity
-        controlInput[-1]=angularV
+            #projected goal calc start
+            # set up a qp-solve problem for the projection of the goal to the safe polygon
+            goal=np.array(targ) # DWR 6/23/2026 followup: Unfortunately, qpsolvers does not like matrices.
+            pos=np.array(self.state.q) # DWR 7/31/2026: Look into ways to reduce these conversion calls without affecting our intent to use npmatrix most places
+            # Angular local goal setup
+            HgProb=qpsolvers.problem.Problem(
+                np.eye(np.size(goal)),  # minimizing squared norm
+                np.zeros((np.size(goal),1)), # no linear component in this QP
+                A=np.matmul((goal-pos).transpose(),skewJ), #equality constraint matrix # check to make sure the transpose works
+                b=np.array([0]),  # equality constraint coefficient
+                G=self.env.safetyMatrix(pos),   # DWR 7/30/2026: According to matlab code, a different safety matrix is used for unicycle
+                h=self.env.safetyCoefficients(goal,pos), # safety constraints coefficients
+                lb=0.5*(self.env.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
+                ub=0.5*(self.env.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
+            )
+            # Linear local goal setup
+            HparProb=qpsolvers.problem.Problem(
+                np.eye(np.size(goal)),  # minimizing squared norm
+                np.zeros((np.size(goal),1)), # no linear component in this QP
+                A=np.array([-np.sin(my_heading),np.cos(my_heading)]), #equality constraint matrix, check to see if row shape works instead of column
+                b=np.array([0]),  # equality constraint coefficient
+                G=self.env.safetyMatrix(pos),   # safety constraints matrix
+                h=self.env.safetyCoefficients(goal,pos), # safety constraints coefficients
+                lb=0.5*(self.env.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
+                ub=0.5*(self.env.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
+            )
+            # Standard projection to safe polygon
+            safeProb=qpsolvers.problem.Problem(
+                np.eye(np.size(goal)),  # minimizing squared norm
+                np.zeros((np.size(goal),1)), # no linear component in this QP
+                G=self.env.safetyMatrix(pos),   # safety constraints matrix
+                h=self.env.safetyCoefficients(goal,pos), # safety constraints coefficients
+                lb=0.5*(self.env.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
+                ub=0.5*(self.env.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
+            )
+            resultHg=qpsolvers.solve_qp(P=HgProb.P,q=HgProb.q,G=HgProb.G,h=HgProb.h,A=HgProb.A,b=HgProb.b,lb=HgProb.lb,ub=HgProb.ub,solver='piqp',initvals=(pos-goal))
+            resultHpar=qpsolvers.solve_qp(P=HparProb.P,q=HparProb.q,G=HparProb.G,h=HparProb.h,A=HparProb.A,b=HparProb.b,lb=HparProb.lb,ub=HparProb.ub,solver='piqp',initvals=(pos-goal))
+            resultSafe=qpsolvers.solve_qp(P=safeProb.P,q=safeProb.q,G=safeProb.G,h=safeProb.h,lb=safeProb.lb,ub=safeProb.ub,solver='piqp',initvals=(pos-goal))
+            if resultHg is None: resultHg=np.zeros((np.size(goal),1))
+            if resultHpar is None: resultHpar=np.zeros((np.size(goal),1))
+            if resultSafe is None: resultSafe=np.zeros((np.size(goal),1))
+            resultHg=resultHg.reshape((np.size(goal),1))+goal
+            resultHpar=resultHpar.reshape((np.size(goal),1))+goal
+            resultSafe=resultSafe.reshape((np.size(goal),1))+goal
+            resultHg=0.5*(resultHg+resultSafe) # Vasilos 2022 def. 55
+            #projected goal calc end
+
+            velocity=-1*np.matrix([np.cos(my_heading),np.sin(my_heading)])*(my_pos-resultHpar)
+            angularV=np.arctan( (np.matrix([-1*np.sin(my_heading),np.cos(my_heading)])*(my_pos-resultHg)) / (np.matrix([np.cos(my_heading),np.sin(my_heading)])*(my_pos-resultHg)) )
+
+        controlInput=np.vstack((velocity.transpose(),angularV),dtype=np.matrix)
         
         return controlInput
-
-    def navf(self,goal,inputPos=None): # both goal and inputPos are position vectors (column matrices)
-        if inputPos is None:
-            return self.env.navUni2022(goal,self.state.pos())
-        else:
-            return self.env.navUni2022(goal,inputPos)

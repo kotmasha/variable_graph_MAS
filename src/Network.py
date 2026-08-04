@@ -141,6 +141,7 @@ class netwk():
                     )
                 self.edgesVisual[edge]=edgePatch
                 visualDict[vis].add_patch(edgePatch)
+        self.visualDict=visualDict # for export
         
         #DWR 7/17/2026: put all goals into the visualization
         #self.target=np.array((networkInfo['networkInfo']['networkTask']['Goals']['Goal1']))
