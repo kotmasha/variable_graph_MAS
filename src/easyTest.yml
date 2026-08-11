@@ -50,6 +50,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: ['safePolygon','safePolygonProj']
         Bravo:
           Type: "fullyActuatedAgent"
           State:

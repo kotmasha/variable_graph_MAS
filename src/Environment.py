@@ -93,42 +93,61 @@ class sphereworldEnv(environment):
         prob=qpsolvers.problem.Problem(
             np.eye(np.size(goal)), # minimizing squared norm
             np.zeros((np.size(goal),1)), # no linear component in this QP
-            G=self.safetyMatrix(pos), # safety constraints matrix (extended version, with workspace boundary)
-            h=self.safetyCoefficientsWithGoal(goal,pos), # safety constraints coefficients (extended version, with workspace boundary)
+            G=self.safetyMatrixExtended(pos), # safety constraints matrix (extended version, with workspace boundary)
+            h=self.safetyCoefficientsExtended(goal,pos), # safety constraints coefficients (extended version, with workspace boundary)
             #lb=0.5*(self.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
             #ub=0.5*(self.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
-            initvals=(pos-goal) # interior point of the polygon for the convenience of the qp solver
+            #initvals=(pos-goal) # interior point of the polygon for the convenience of the qp solver
         )
+        #Note: cannot create initvals in the Problem former itself
         #solve the QP problem
         #solver list: https://pypi.org/project/qpsolvers/
-        result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,lb=prob.lb,ub=prob.ub,solver='piqp',initvals=(pos-goal))
+        result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,solver='piqp',initvals=(pos-goal))
         if result is None:
             result=np.zeros((np.size(goal),1))
         return np.matrix(goal+result.reshape((np.size(goal),1))-pos)
     
     def safetyMatrix(self,pos):
         # Computes the coefficient matrix describing the safe polytope at the point z
+        return np.subtract(self.obstacleCenters,pos.T)
+
+    def safetyMatrixExtended(self,pos):
+        # Computes the coefficient matrix describing the safe polytope at the point z
+        # For use in the safe polygon visualization
         M=np.subtract(self.obstacleCenters,pos.T)
-        return np.vstack(M,np.matrix([[1,0],[0,1],[-1,0],[0,-1]])) # append workspace boundary equations (upper bounds, then lower bounds)
+        return np.vstack((M,np.matrix([[1,0],[0,1],[-1,0],[0,-1]]))) # append workspace boundary equations (upper bounds, then lower bounds)
 
     def obstacleDist(self,pos):
         # Computes the column vector of distances of z to the obstacle centers
         return la.norm(np.subtract(self.obstacleCenters,pos.T),axis=1,keepdims=True)
-
-    def safetyCoefficients(self,pos): # pos is a 2-by-1 vector, for visualizations
-        # input should be column vectors
-        dists=self.obstacleDist(pos)
-        cons=self.safetyMatrix(pos)
-        b=np.array(0.5*(np.power(dists,2) - np.multiply(self.obstacleRadii.reshape(-1,1),dists))+cons @ pos)
-        b=np.vstack(b,0.5*(self.wkspcUpperBds+pos),-0.5*(self.wkspcLowerBds+pos)) # append workspace boundary upper bounds, then lower bounds
-        return b
     
-    def safetyCoefficientsWithGoal(self,goal,pos): # goal and pos are 2-by-1 vectors, for use with self.nav
+    def obstacleDistExtended(self,pos):
+        # Computes the column vector of distances of z to the obstacle centers
+        ballDists=la.norm(np.subtract(self.obstacleCenters,pos.T),axis=1,keepdims=True)
+        wkspcDists=np.abs(np.array([
+            [pos[0][0]-self.wkspcLowerBds[0][0]],
+            [pos[1][0]-self.wkspcLowerBds[1][0]],
+            [pos[0][0]-self.wkspcUpperBds[0][0]],
+            [pos[1][0]-self.wkspcUpperBds[1][0]]
+            ]))
+        return np.vstack((ballDists,wkspcDists))
+
+    def safetyCoefficientsExtended(self,goal,pos): # pos is a 2-by-1 vector, for visualizations
+        # For use in the safe polygon visualization
         # input should be column vectors
+        # two ways to do this: only consider
         dists=self.obstacleDist(pos)
         cons=self.safetyMatrix(pos)
         b=np.array(0.5*(np.power(dists,2) - np.multiply(self.obstacleRadii.reshape(-1,1),dists))+cons @ (pos-goal.reshape((np.size(goal),1))))
-        b=np.vstack(b,0.5*(self.wkspcUpperBds+pos)-goal,-0.5*(self.wkspcLowerBds+pos)-goal) # append workspace boundary upper bounds, then lower bounds
+        b=np.vstack((b,(0.5*(self.wkspcUpperBds+pos)-goal),-(0.5*(self.wkspcLowerBds+pos)-goal))) # append workspace boundary upper bounds, then lower bounds
+        return b
+    
+    def safetyCoefficients(self,goal,pos): # goal and pos are 2-by-1 vectors, for use with self.nav
+        # may want to delete this, superseded by Extended version
+
+        dists=self.obstacleDist(pos)
+        cons=self.safetyMatrix(pos)
+        b=np.array(0.5*(np.power(dists,2) - np.multiply(self.obstacleRadii.reshape(-1,1),dists))+cons @ (pos-goal.reshape((np.size(goal),1))))
         return b
 
     def inCircle(self,idx,idy,oc,oR):
@@ -145,33 +164,6 @@ class sphereworldEnv(environment):
             return False
         else:
             return True
-        
-    def localFreespacePatch(self,pos):
-        #LW: q in workspace | norm(q-x+robotRadius*norm(x-obsProjection(x))) <= norm(q-obsProjection(x)) for every obstacle
-        #LF: q in local workspace | Ball(x,radius) is proper subset of workspace
-        #   No effect on zero radius agents
-        poly=HalfspaceIntersection(np.hstack(self.safetyMatrix(pos),-self.safetyCoefficients(pos))) #computing the vertices of the safety polygon        
-        poly=shapely.geometry.Polygon(poly)
-        #now you create the patch...
-
-        obstaclePoints=self.safetyMatrix(pos)
-        for row in range(0,len(obstaclePoints)):
-            obstaclePoints[row]=obstaclePoints[row] - (obstaclePoints[row]/la.norm(obstaclePoints[row]))*self.obstacleRadii[row].item()
-        obstaclePoints=np.add(obstaclePoints,pos.transpose())
-        boundaryCoords=np.array(self.workspace.exterior.coords)
-
-        vor=Voronoi(np.vstack((obstaclePoints,boundaryCoords,pos.transpose())),furthest_site=False)
-
-        lines = [
-            shapely.geometry.LineString(vor.vertices[line])
-            for line in vor.ridge_vertices
-            if -1 not in line
-        ]
-        posGeom=shapely.Point(pos)
-        for poly in shapely.ops.polygonize(lines):
-            if poly.contains(posGeom):
-                return shapely.plotting.plot_polygon(poly,add_points=False,alpha=0.2)
-
 
 
     # def plotObstacles(self,viz): # DWR 7/13/2026: Code currently uses workspace-obstacles directly for plotting

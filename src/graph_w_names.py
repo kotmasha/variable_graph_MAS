@@ -12,14 +12,19 @@ import universal
 class graph_w_names:
     def __init__(self, names, edges=None):
         #ingest the vertex names and enumerate them
-        self.names = list(names)
-        self.vertexIndices = {vertex: idx for idx, vertex in enumerate(names)}
-        self.indexToVertex={v: k for k, v in self.vertexIndices.items()} # DWR 6/16/26: used for visualizations in network.py
+        self.names=list(names)
+        if edges==None:
+            self.graph=np.zeros((0,0))
+            self.edges=np.zeros((0,0))
+            self.vertexIndices={names[0]:0}
+        else:
+            self.vertexIndices = {vertex: idx for idx, vertex in enumerate(names)}
+            self.indexToVertex={v: k for k, v in self.vertexIndices.items()} # DWR 6/16/26: used for visualizations in network.py
 
-        self.edges = [(self.vertexIndices[edge[0]], self.vertexIndices[edge[1]]) for edge in edges]
-        rows, cols = zip(*self.edges)
-        data = np.ones(len(self.edges), dtype=int)
-        self.graph = csr_matrix((data, (rows, cols)), shape=(len(names), len(names)))
+            self.edges = [(self.vertexIndices[edge[0]], self.vertexIndices[edge[1]]) for edge in edges]
+            rows, cols = zip(*self.edges)
+            data = np.ones(len(self.edges), dtype=int)
+            self.graph = csr_matrix((data, (rows, cols)), shape=(len(names), len(names)))
 
     def agentNum(self):
         return len(self.names)

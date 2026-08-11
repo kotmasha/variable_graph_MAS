@@ -16,7 +16,7 @@ from scipy.integrate import odeint, solve_ivp
 from matplotlib.animation import FuncAnimation, PillowWriter
 from datetime import datetime
 from matplotlib.lines import Line2D
-plt.rcParams['animation.ffmpeg_path'] = 'C:\\0_Work_files\\programs\\ffmpeg\\bin\\ffmpeg.exe'
+plt.rcParams['animation.ffmpeg_path'] = 'C:\\0_Work_files\\bin\\ffmpeg\\bin\\ffmpeg.exe'
 
 # from manim import *
 current_time = datetime.now()
@@ -87,6 +87,9 @@ def showSafePolygon(pos):
     #Action: Adds the safe polygon patch to the visualization
     visualization.add_patch(env.localFreespacePatch(pos))
 
+def projSafePolygon(pos,goal):
+    visualization.add_line(env.safePolyGoalProj(pos,goal))
+
 # Environment.py plotting. obsBuffer and collarPolygon are mainly for testing
 visualization.add_patch(env.workspacePatch())
 #visualization.add_patch(env.obstacleBufferPlot())
@@ -130,7 +133,8 @@ else:
     titlePlot='Contractive PnP Controller'
 
 # misc. plotting
-showSafePolygon(np.array([[2.],[1.67]]))
+#showSafePolygon(np.array([[2.],[1.67]]))
+#projSafePolygon(np.array([[2.],[1.67]]),np.array([[9.],[9.]]))
 visualization.grid(False) # Do this last
 # Trajectory plotting is handled by plot_multi_agent_trajectories
 
@@ -247,8 +251,8 @@ elif solverType == 'nsfPlots':
 
 elif solverType=="odeInt": #For OdeInt
     flowTime=np.linspace(0,simTime,simTime*framesPerSec)
-    # plt.show()
-    # raise Exception("Comment this line out to turn on the ode solver")
+    #plt.show()
+    #raise Exception("Comment this line out to turn on the ode solver")
     print(stateVector)
     odeSol,output_dict=odeint(net.FlowMap,stateVector.T.flatten(),flowTime,full_output=1)
     # odeObj=solve_ivp(net.FlowMapSwapInput,[0,simTime],stateVector.flatten(),method='RK45')
@@ -259,11 +263,11 @@ elif solverType=="odeInt": #For OdeInt
     plot_multi_agent_trajectories(net, odeSol, flowTime)
     plt.title('ODE Solution for Multiple Agents')
     plt.show()
-    raise Exception("Comment this line out to turn on the video")
+    #raise Exception("Comment this line out to turn on the video")
     odeTimeStamps=np.insert(output_dict['tcur'],0,0) # odeSol includes the starting t=0 frame, but t=0 is not included in tcur
     odeTimeStamps,odeSol=frameCull(odeTimeStamps,odeSol,maxTime=simTime,desiredNframes=Nframes)
     ani=animation.FuncAnimation(
-        fig=net.figure,
+        fig=figure,
         func=updateAni,
         frames=frameCounter(odeTimeStamps,odeSol,net),
         # frames=[net for item in range(Nframes)], 

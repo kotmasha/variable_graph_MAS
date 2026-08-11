@@ -4,11 +4,14 @@ import sys
 import os
 import math
 import matplotlib.patches as patches
+import matplotlib.path as matPaths
 from numpy import linalg as la
 import numpy as np
 import qpsolvers
 import random
 # from scipy.sparse.csgraph import depth_first_order
+from scipy.spatial import HalfspaceIntersection
+import shapely
 from states import State, State2ndOrder, State2ndOrdRadian
 import universal as uv
 from myGeometryTools import skewJ
@@ -31,16 +34,31 @@ class Agent():
         self.state=state # 6/9/2026 State will always have an attribute called "q" indicating position. It could have others too.
         self.neighbors=network.neighbors(name)
         self.task=task
+        self.plots=network.networkInfo['networkInfo']['Agents']['AgentInfo'][name]['Plots'] # List of strings, which are things to plot
 
         self.visualization={}
         # UNCOMMENT THIS WHEN READY; IT IS INTENDED TO STAY HERE
         self.visualization['vertex']=patches.Circle(
-                uv.col2tup(self.state.q),
-                radius=0.2,
-                label=name,
-                color='orange',
-                animated=True,
-                )
+            uv.col2tup(self.state.q),
+            radius=0.15,
+            label=name,
+            color='orange',
+            animated=True, # ENABLE IF CREATING VIDEO
+            )
+        if 'safePolygon' in self.plots: # See safePolyViz for more info below
+            goal=np.matrix(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']]).T
+            pos=np.array([[self.state.q[0].item()],[self.state.q[1].item()]]) # halfspace needs shape (2,), and npmatrix flatten doesn't work
+
+            print(self.env.safetyMatrixExtended(pos))
+            print(self.env.safetyCoefficientsExtended(goal,pos))
+            poly=HalfspaceIntersection(np.hstack((self.env.safetyMatrixExtended(pos),-self.env.safetyCoefficientsExtended(goal,pos))),interior_point=np.ndarray.flatten(pos)) #computing the vertices of the safety polygon        
+
+            verticesTemp=np.subtract(poly.intersections,pos.T)
+            vertexSorter=np.argsort(np.arctan2(verticesTemp[:,0],verticesTemp[:,1]))
+
+            poly=shapely.geometry.Polygon(poly.intersections[vertexSorter])
+            self.visualization['safePolygon']=shapely.plotting.plot_polygon(poly,add_points=False,animated=True)
+
 
         # self.addEgde=self.create_service(AddEdge,'AddEdge',)
         # #Define parameters here
@@ -96,6 +114,23 @@ class Agent():
     
     def clientOutputSim(self,networkState): # for ODE simulation, networkState is a column np.array vector
         return self.dynamics(self.computeController(networkState),self.own_state(networkState))
+
+    def safePolyViz(self): # for use in animation
+        pos=np.array([[self.state.q[0].item()],[self.state.q[1].item()]]) # halfspace needs shape (2,), and npmatrix flatten doesn't work
+        poly=HalfspaceIntersection(np.hstack((self.env.safetyMatrixExtended(pos),-self.env.safetyCoefficientsExtended(pos))),interior_point=np.ndarray.flatten(pos)) #computing the vertices of the safety polygon        
+
+        # halfspaceIntersection doesn't sort the vertices for us, so we do it here
+        verticesTemp=np.subtract(poly.intersections,pos.T) # move interior point to 0,0 for CCW sorting
+        vertexSorter=np.argsort(np.arctan2(verticesTemp[:,0],verticesTemp[:,1])) # indices of poly vertices sorted by CCW order
+
+        return matPaths.Path(poly.intersections[vertexSorter],closed=True)
+
+    def safePolyGoalProj(self,pos,goal):
+        vector=self.nav(goal,pos)
+        return shapely.plotting.plot_points(shapely.Point(pos+vector))
+
+    
+        
         
     
 class fullyActuatedAgent(Agent):
@@ -134,7 +169,10 @@ class fullyActuatedAgent(Agent):
         # Calculate the navigation-to-goal component
         if 'Target' in self.task:
             targ=np.matrix(np.reshape(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']],shape=np.shape(my_pos)))
-            controlInput=controlInput+self.network.leaderGain*self.navf(targ,my_pos) 
+            targNav=self.navf(targ,my_pos) 
+            controlInput=controlInput+self.network.leaderGain*targNav
+
+            
             
         # Combine the target component with the network interaction component        
         controlInput=controlInput+pnpSummand
@@ -238,7 +276,8 @@ class unicycleAgent2022(Agent):
             dy=headingVector[1,0],
             alpha=1,
             color='purple',
-            animated=True,
+            width=0.35,
+            animated=True, # ENABLE IF DOING VIDEO
         )
 
 

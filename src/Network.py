@@ -101,7 +101,7 @@ class netwk():
         
         ### compute some of the pnp parameters
 
-        if self.graph.edges!=None:
+        if len(self.graph.edges)!=0:
 
             self.numEdges=len(self.graph.edges)
         
@@ -320,11 +320,24 @@ class netwk():
             self.agents[name].setState(networkState[a:b])
     
     # def updateVisualization(self,timeStamp): # DWR 7/2/2026: Do we need timeStamp?
-    def updateVisualization(self):       
-        for name in self.graph.names:
-            self.verticesVisual[name].set(center=uv.col2tup(self.agents[name].state.q))
+    def updateVisualization(self):   
+        for name in self.verticesVisual:
+            for item in self.verticesVisual[name]:
+                # Safe polygon
+                if item=='safePolygon':
+                    print(type(self.verticesVisual[name][item]))
+                    self.verticesVisual[name][item].set_path(self.agents[name].safePolyViz())
+                # Generic type stuff begins here
+                elif type(self.verticesVisual[name][item])==patches.Arrow:
+                    self.verticesVisual[name][item].set_data(x=self.agents[name].state.q[0],y=self.agents[name].state.q[1])
+                elif type(self.verticesVisual[name][item])==patches.Circle:
+                    self.verticesVisual[name][item].set(center=uv.col2tup(self.agents[name].state.q))
+                elif type(item)==patches.PathPatch:
+                    self.verticesVisual[name][item]
+                else:
+                    raise Exception("Need to add If statement for patch type")
 
-        if self.graph.edges != None:    
+        if len(self.graph.edges) != 0:    
             for edge in self.graph.edges: 
                 self.edgesVisual[edge].set_xy(np.asarray(np.hstack((self.agents[self.graph.names[edge[0]]].state.q,self.agents[self.graph.names[edge[1]]].state.q)).T))
         for edge in self.updatedEdges:
