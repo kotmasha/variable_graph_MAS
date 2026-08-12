@@ -316,21 +316,17 @@ class unicycleAgent2022(Agent):
         controlInput=np.zeros_like(np.vstack((my_pos,np.array(my_heading)))) # not sure if vstack or hstack
         # Calculate the navigation-to-goal component
         if 'Target' in self.task:
-            targ=np.matrix(np.reshape(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']],shape=np.shape(my_pos)))
-
-            #projected goal calc start
             # set up a qp-solve problem for the projection of the goal to the safe polygon
-            goal=np.array(targ) # DWR 6/23/2026 followup: Unfortunately, qpsolvers does not like matrices.
-            pos=np.array(self.state.q) # DWR 7/31/2026: Look into ways to reduce these conversion calls without affecting our intent to use npmatrix most places
+            goal=np.reshape(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']],shape=np.shape(my_pos))
             # Angular local goal setup
-            M=np.matmul((goal-pos).transpose(),skewJ)
+            M=np.matmul((goal-my_pos).transpose(),skewJ)
             HgProb=qpsolvers.problem.Problem(
                 np.eye(np.size(goal)),  # minimizing squared norm
                 np.zeros((np.size(goal),1)), # no linear component in this QP
                 A=M, #equality constraint matrix # check to make sure the transpose works
-                b=np.matmul(M,pos-goal),  # equality constraint coefficient
-                G=self.env.safetyMatrixExtended(pos),   # DWR 7/30/2026: According to matlab code, a different safety matrix is used for unicycle
-                h=self.env.safetyCoefficientsExtended(goal,pos), # safety constraints coefficients
+                b=np.matmul(M,my_pos-goal),  # equality constraint coefficient
+                G=self.env.safetyMatrixExtended(my_pos),   # DWR 7/30/2026: According to matlab code, a different safety matrix is used for unicycle
+                h=self.env.safetyCoefficientsExtended(goal,my_pos), # safety constraints coefficients
                 #lb=0.5*(self.env.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
                 #ub=0.5*(self.env.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
             )
@@ -340,9 +336,9 @@ class unicycleAgent2022(Agent):
                 np.eye(np.size(goal)),  # minimizing squared norm
                 np.zeros((np.size(goal),1)), # no linear component in this QP
                 A=M, #equality constraint matrix, check to see if row shape works instead of column
-                b=np.matmul(M,pos-goal),  # equality constraint coefficient
-                G=self.env.safetyMatrixExtended(pos),   # safety constraints matrix
-                h=self.env.safetyCoefficientsExtended(goal,pos), # safety constraints coefficients
+                b=np.matmul(M,my_pos-goal),  # equality constraint coefficient
+                G=self.env.safetyMatrixExtended(my_pos),   # safety constraints matrix
+                h=self.env.safetyCoefficientsExtended(goal,my_pos), # safety constraints coefficients
                 #lb=0.5*(self.env.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
                 #ub=0.5*(self.env.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
             )
@@ -350,14 +346,14 @@ class unicycleAgent2022(Agent):
             safeProb=qpsolvers.problem.Problem(
                 np.eye(np.size(goal)),  # minimizing squared norm
                 np.zeros((np.size(goal),1)), # no linear component in this QP
-                G=self.env.safetyMatrixExtended(pos),   # safety constraints matrix
-                h=self.env.safetyCoefficientsExtended(goal,pos), # safety constraints coefficients
+                G=self.env.safetyMatrixExtended(my_pos),   # safety constraints matrix
+                h=self.env.safetyCoefficientsExtended(goal,my_pos), # safety constraints coefficients
                 #lb=0.5*(self.env.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
                 #ub=0.5*(self.env.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
             )
-            resultHg=qpsolvers.solve_qp(P=HgProb.P,q=HgProb.q,G=HgProb.G,h=HgProb.h,A=HgProb.A,b=HgProb.b,lb=HgProb.lb,ub=HgProb.ub,solver='piqp',initvals=(pos-goal))
-            resultHpar=qpsolvers.solve_qp(P=HparProb.P,q=HparProb.q,G=HparProb.G,h=HparProb.h,A=HparProb.A,b=HparProb.b,lb=HparProb.lb,ub=HparProb.ub,solver='piqp',initvals=(pos-goal))
-            resultSafe=qpsolvers.solve_qp(P=safeProb.P,q=safeProb.q,G=safeProb.G,h=safeProb.h,lb=safeProb.lb,ub=safeProb.ub,solver='piqp',initvals=(pos-goal))
+            resultHg=qpsolvers.solve_qp(P=HgProb.P,q=HgProb.q,G=HgProb.G,h=HgProb.h,A=HgProb.A,b=HgProb.b,lb=HgProb.lb,ub=HgProb.ub,solver='piqp',initvals=(my_pos-goal))
+            resultHpar=qpsolvers.solve_qp(P=HparProb.P,q=HparProb.q,G=HparProb.G,h=HparProb.h,A=HparProb.A,b=HparProb.b,lb=HparProb.lb,ub=HparProb.ub,solver='piqp',initvals=(my_pos-goal))
+            resultSafe=qpsolvers.solve_qp(P=safeProb.P,q=safeProb.q,G=safeProb.G,h=safeProb.h,lb=safeProb.lb,ub=safeProb.ub,solver='piqp',initvals=(my_pos-goal))
             if resultHg is None: resultHg=np.zeros((np.size(goal),1))
             if resultHpar is None: resultHpar=np.zeros((np.size(goal),1))
             if resultSafe is None: resultSafe=np.zeros((np.size(goal),1))
