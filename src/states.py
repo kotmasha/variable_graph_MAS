@@ -57,7 +57,7 @@ class State2ndOrdRadian(State):
         return self.flatten().size
     
     def update(self,flattened_new_state): # updates the state based on a flattened vector representation, which must be a numpy column matrix
-        s=self.size(flattened_new_state)
+        s=np.size(flattened_new_state)
         self.q=flattened_new_state[0:(s-1),0]
         self.angle=flattened_new_state[-1,0]
 

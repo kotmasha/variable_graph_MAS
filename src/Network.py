@@ -325,17 +325,18 @@ class netwk():
             for item in self.verticesVisual[name]:
                 # Safe polygon
                 if item=='safePolygon':
-                    print(type(self.verticesVisual[name][item]))
                     self.verticesVisual[name][item].set_path(self.agents[name].safePolyViz())
-                # Generic type stuff begins here
+                elif item=='goalProjection':
+                    self.verticesVisual[name][item].set(center=uv.col2tup(self.agents[name].goalProjViz()))
+                # Generic type stuff begins here; Consider going entirely by the item name
                 elif type(self.verticesVisual[name][item])==patches.Arrow:
-                    self.verticesVisual[name][item].set_data(x=self.agents[name].state.q[0],y=self.agents[name].state.q[1])
+                    self.verticesVisual[name][item].set_data(x=self.agents[name].state.q[0].item(),y=self.agents[name].state.q[1].item(),dx=np.cos(self.agents[name].state.angle),dy=np.sin(self.agents[name].state.angle))
                 elif type(self.verticesVisual[name][item])==patches.Circle:
                     self.verticesVisual[name][item].set(center=uv.col2tup(self.agents[name].state.q))
                 elif type(item)==patches.PathPatch:
                     self.verticesVisual[name][item]
                 else:
-                    raise Exception("Need to add If statement for patch type")
+                    raise Exception(f"Need to add If statement for patch type: {type(self.verticesVisual[name][item])}")
 
         if len(self.graph.edges) != 0:    
             for edge in self.graph.edges: 

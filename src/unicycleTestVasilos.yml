@@ -33,7 +33,7 @@ EnvInfo:
 Network:
   netID: 'AutonomyPark'
   networkInfo:
-    Duration: 300
+    Duration: 10
     networkTask:
       Goals:
         Goal1: [9., 9.]
@@ -50,6 +50,8 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: 
+            safePolygon: ['goalProjection','HparaProjection','HgProjection']
         # Bravo:
         #   Type: "unicycleAgent2022"
         #   State:

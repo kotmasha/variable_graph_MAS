@@ -47,17 +47,25 @@ class Agent():
             )
         if 'safePolygon' in self.plots: # See safePolyViz for more info below
             goal=np.matrix(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']]).T
-            pos=np.array([[self.state.q[0].item()],[self.state.q[1].item()]]) # halfspace needs shape (2,), and npmatrix flatten doesn't work
-
-            print(self.env.safetyMatrixExtended(pos))
-            print(self.env.safetyCoefficientsExtended(goal,pos))
-            poly=HalfspaceIntersection(np.hstack((self.env.safetyMatrixExtended(pos),-self.env.safetyCoefficientsExtended(goal,pos))),interior_point=np.ndarray.flatten(pos)) #computing the vertices of the safety polygon        
+            pos=np.array([[self.state.q[0].item()],[self.state.q[1].item()]]) # halfspace needs shape (2,), and npmatrix flatten doesn't work right
+            poly=HalfspaceIntersection(np.hstack((self.env.safetyMatrixExtended(pos),-self.env.safetyCoefficientsNoGoal(pos))),interior_point=np.ndarray.flatten(pos)) #computing the vertices of the safety polygon        
 
             verticesTemp=np.subtract(poly.intersections,pos.T)
             vertexSorter=np.argsort(np.arctan2(verticesTemp[:,0],verticesTemp[:,1]))
 
             poly=shapely.geometry.Polygon(poly.intersections[vertexSorter])
             self.visualization['safePolygon']=shapely.plotting.plot_polygon(poly,add_points=False,animated=True)
+
+            #safePolygon other options begin here
+            if 'goalProjection' in self.plots['safePolygon']:
+                #Find a quicker way to do this than calling Nav again
+                self.visualization['goalProjection']=patches.Circle(
+                    uv.col2tup(self.state.q+self.env.nav(goal,pos)),
+                    radius=0.1,
+                    label=name,
+                    color='red',
+                    animated=True, # ENABLE IF CREATING VIDEO
+                    )
 
 
         # self.addEgde=self.create_service(AddEdge,'AddEdge',)
@@ -117,17 +125,21 @@ class Agent():
 
     def safePolyViz(self): # for use in animation
         pos=np.array([[self.state.q[0].item()],[self.state.q[1].item()]]) # halfspace needs shape (2,), and npmatrix flatten doesn't work
-        poly=HalfspaceIntersection(np.hstack((self.env.safetyMatrixExtended(pos),-self.env.safetyCoefficientsExtended(pos))),interior_point=np.ndarray.flatten(pos)) #computing the vertices of the safety polygon        
+        if (np.min(pos)<0) or (np.max(pos)>10): # Temporary hard-code to bugfix unicycle vasilos; should be improved if used more, otherwise removed
+            poly=HalfspaceIntersection(np.hstack((self.env.safetyMatrixExtended(pos)[0:-4],-self.env.safetyCoefficientsNoGoal(pos)[0:-4])),interior_point=np.ndarray.flatten(pos))
+        else:
+            poly=HalfspaceIntersection(np.hstack((self.env.safetyMatrixExtended(pos),-self.env.safetyCoefficientsNoGoal(pos))),interior_point=np.ndarray.flatten(pos)) #computing the vertices of the safety polygon        
 
         # halfspaceIntersection doesn't sort the vertices for us, so we do it here
         verticesTemp=np.subtract(poly.intersections,pos.T) # move interior point to 0,0 for CCW sorting
         vertexSorter=np.argsort(np.arctan2(verticesTemp[:,0],verticesTemp[:,1])) # indices of poly vertices sorted by CCW order
+        polyVertices=poly.intersections[vertexSorter]
+        
+        return matPaths.Path(np.vstack((polyVertices,polyVertices[0])),closed=True)
 
-        return matPaths.Path(poly.intersections[vertexSorter],closed=True)
-
-    def safePolyGoalProj(self,pos,goal):
-        vector=self.nav(goal,pos)
-        return shapely.plotting.plot_points(shapely.Point(pos+vector))
+    def goalProjViz(self):
+        goal=np.matrix(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']]).T
+        return (self.state.q + self.env.nav(goal,self.state.q))
 
     
         
@@ -279,6 +291,11 @@ class unicycleAgent2022(Agent):
             width=0.35,
             animated=True, # ENABLE IF DOING VIDEO
         )
+
+        if 'safePolygon' in self.plots:
+            print("add HgProj and HparaProj code in agent.py")
+            # if 'HgProjection' in self.plots['safePolygon']:
+            # if 'HparaProjection' in self.plots['safePolygon']:
 
 
         # DWR self notes for writing Vasilos' unicycle code:

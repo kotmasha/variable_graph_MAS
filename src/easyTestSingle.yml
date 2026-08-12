@@ -33,7 +33,7 @@ EnvInfo:
 Network:
   netID: 'AutonomyPark'
   networkInfo:
-    Duration: 10
+    Duration: 300
     networkTask:
       Goals:
         Goal1: [9., 9.]
@@ -45,12 +45,13 @@ Network:
         Zoe:
           Type: "fullyActuatedAgent" # Corresponding class in agent.py
           State:
-            q: [[2., 1.67]] # The double brackets makes numpy.shape(q) output (1, 2) instead of (2,)
+            q: [[5., 5.]] # The double brackets makes numpy.shape(q) output (1, 2) instead of (2,)
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
             KeepUpQ: False
-          Plots: ['safePolygon','safePolygonProj']
+          Plots: 
+            safePolygon: ['goalProjection','HparaProjection','HgProjection']
     Edges:
     pnpParameters:
       Lazy: 0

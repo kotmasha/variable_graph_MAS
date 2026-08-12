@@ -141,6 +141,16 @@ class sphereworldEnv(environment):
         b=np.array(0.5*(np.power(dists,2) - np.multiply(self.obstacleRadii.reshape(-1,1),dists))+cons @ (pos-goal.reshape((np.size(goal),1))))
         b=np.vstack((b,(0.5*(self.wkspcUpperBds+pos)-goal),-(0.5*(self.wkspcLowerBds+pos)-goal))) # append workspace boundary upper bounds, then lower bounds
         return b
+
+    def safetyCoefficientsNoGoal(self,pos): # pos is a 2-by-1 vector, for visualizations
+            # For use in the safe polygon visualization
+            # input should be column vectors
+            # two ways to do this: only consider
+            dists=self.obstacleDist(pos)
+            cons=self.safetyMatrix(pos)
+            b=np.array(0.5*(np.power(dists,2) - np.multiply(self.obstacleRadii.reshape(-1,1),dists))+cons @ pos)
+            b=np.vstack((b,0.5*(self.wkspcUpperBds+pos),-0.5*(self.wkspcLowerBds+pos))) # append workspace boundary upper bounds, then lower bounds
+            return b
     
     def safetyCoefficients(self,goal,pos): # goal and pos are 2-by-1 vectors, for use with self.nav
         # may want to delete this, superseded by Extended version

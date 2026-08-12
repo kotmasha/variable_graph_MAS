@@ -122,7 +122,6 @@ else:
 graph=graph_w_names(names,edges)
 
 # Network.py plotting (some may be moved into their own categories, like stuff that comes from graph_w_names.py
-#hack-fix because matplotlib is annoying
 for name in net.verticesVisual:
     for key in net.verticesVisual[name]:
         visualization.add_patch(net.verticesVisual[name][key])
@@ -133,19 +132,15 @@ else:
     titlePlot='Contractive PnP Controller'
 
 # misc. plotting
-#showSafePolygon(np.array([[2.],[1.67]]))
-#projSafePolygon(np.array([[2.],[1.67]]),np.array([[9.],[9.]]))
-visualization.grid(False) # Do this last
+visualization.grid(False) # Do this last, or it gets overwritten
 # Trajectory plotting is handled by plot_multi_agent_trajectories
 
 def updateAni(content): # Content is assumed to be a tuple containing timestamp,networkState,net
     timeStamp,networkState,net=content
-    # update agent state
-    net.pnpUpdate(networkState)
-    # one tick of the network clock
-    net.tick(timeStamp)
-    # update the visualization data
-    net.updateVisualization() # needs to be updated in network.py to reflect changes to how visualization works
+    net.pnpUpdate(networkState)     # update agent state
+    net.tick(timeStamp)             # one tick of the network clock
+    net.updateVisualization()       # update the visualization data
+    # needs to be updated in network.py to reflect changes to how visualization works
 
 def plot_multi_agent_trajectories(net, odeSol, flowTime):
     num_agents = len(net.graph.names)
