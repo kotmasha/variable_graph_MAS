@@ -243,7 +243,7 @@ class polygonEnv(environment):
     #   2: Sphereworld nav (already done)
     #   3: Reverse diffeo
     #   4: return vector
-    def nav(self,goal,pos):
+    def nav(self,goal,pos,angle=None):
         goal=np.array(goal).reshape(1,-1)
         pos=np.array(pos).reshape(1,-1)
 
@@ -277,6 +277,14 @@ class polygonEnv(environment):
             # compute the goal in sphere world:
             sphereGoal,_,_=reactive_planner_lib.polygonDiffeoTriangulation(goal,self.obstacleTrees[obs],self.DiffeoParams)
 
+        # Find robot orientation in the model space
+        if angle != None:
+            V,D = la.eig(diffeoPosD*(diffeoPosD.T))
+            dmax = max(D[0,0],D[1,1]) # Do we need these? They are apparently unused in getHAndles_unicycle_diffeo
+            dmin = min(D[0,0],D[1,1]) # '
+            e_vector = diffeoPosD * np.matrix([[np.cos(angle)],[np.sin(angle)]])
+            sphereHeading = np.atan2(e_vector[1],e_vector[0])
+
         # compute the navigation field value in sphere world:
         sphereNavField=self.sphereWorld.nav(sphereGoal.transpose(),spherePos.transpose())
 
@@ -284,6 +292,113 @@ class polygonEnv(environment):
         #   DWR 7/13/2026: we replaced np.matmul with lu_solve for better numerical stability
         #return np.matmul(np.linalg.inv(diffeoPosD),sphereNavField)
         return lu_solve(lu_factor(diffeoPosD),sphereNavField,overwrite_b=True) # Performance looks slightly better, but haven't tested it much
+
+    def diffeo(self,goal,pos,angle):
+        # Separation of the diffeomorphism and reverse, not including the sphereNav call. Intended for use with unicycle2022 agent.
+        goal=np.array(goal).reshape(1,-1)
+        pos=np.array(pos).reshape(1,-1)
+
+        diffeoPos=pos
+        diffeoPosD=np.eye(2)
+        diffeoPosDD=np.zeros([1,8])[0]
+        for obs in self.obstacleTrees:
+            #DiffeoParams should be dictionary. The question is where do we create DiffeoParams? Probably the yml.
+            spherePos,spherePosD,spherePosDD=reactive_planner_lib.polygonDiffeoTriangulation(diffeoPos,self.obstacleTrees[obs],self.DiffeoParams)
+
+            res0=spherePosD[0,0]*diffeoPosDD[0] + spherePosD[0,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(spherePosDD[0]*diffeoPosD[0,0] + spherePosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(spherePosDD[2]*diffeoPosD[0,0] + spherePosDD[3]*diffeoPosD[1,0])
+            res1=spherePosD[0,0]*diffeoPosDD[1] + spherePosD[0,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(spherePosDD[0]*diffeoPosD[0,1] + spherePosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(spherePosDD[2]*diffeoPosD[0,1] + spherePosDD[3]*diffeoPosD[1,1])
+            res2=spherePosD[0,0]*diffeoPosDD[2] + spherePosD[0,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(spherePosDD[0]*diffeoPosD[0,0] + spherePosDD[1]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(spherePosDD[2]*diffeoPosD[0,0] + spherePosDD[3]*diffeoPosD[1,0])
+            res3=spherePosD[0,0]*diffeoPosDD[3] + spherePosD[0,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(spherePosDD[0]*diffeoPosD[0,1] + spherePosDD[1]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(spherePosDD[2]*diffeoPosD[0,1] + spherePosDD[3]*diffeoPosD[1,1])
+            res4=spherePosD[1,0]*diffeoPosDD[0] + spherePosD[1,1]*diffeoPosDD[4] + diffeoPosD[0,0]*(spherePosDD[4]*diffeoPosD[0,0] + spherePosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,0]*(spherePosDD[6]*diffeoPosD[0,0] + spherePosDD[7]*diffeoPosD[1,0])
+            res5=spherePosD[1,0]*diffeoPosDD[1] + spherePosD[1,1]*diffeoPosDD[5] + diffeoPosD[0,0]*(spherePosDD[4]*diffeoPosD[0,1] + spherePosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,0]*(spherePosDD[6]*diffeoPosD[0,1] + spherePosDD[7]*diffeoPosD[1,1])
+            res6=spherePosD[1,0]*diffeoPosDD[2] + spherePosD[1,1]*diffeoPosDD[6] + diffeoPosD[0,1]*(spherePosDD[4]*diffeoPosD[0,0] + spherePosDD[5]*diffeoPosD[1,0]) + diffeoPosD[1,1]*(spherePosDD[6]*diffeoPosD[0,0] + spherePosDD[7]*diffeoPosD[1,0])
+            res7=spherePosD[1,0]*diffeoPosDD[3] + spherePosD[1,1]*diffeoPosDD[7] + diffeoPosD[0,1]*(spherePosDD[4]*diffeoPosD[0,1] + spherePosDD[5]*diffeoPosD[1,1]) + diffeoPosD[1,1]*(spherePosDD[6]*diffeoPosD[0,1] + spherePosDD[7]*diffeoPosD[1,1])
+            diffeoPosDD[0]=res0
+            diffeoPosDD[1]=res1
+            diffeoPosDD[2]=res2
+            diffeoPosDD[3]=res3
+            diffeoPosDD[4]=res4
+            diffeoPosDD[5]=res5
+            diffeoPosDD[6]=res6
+            diffeoPosDD[7]=res7
+
+            diffeoPosD=spherePosD*diffeoPosD
+            diffeoPos=spherePos
+
+            # compute the goal in sphere world:
+            sphereGoal,_,_=reactive_planner_lib.polygonDiffeoTriangulation(goal,self.obstacleTrees[obs],self.DiffeoParams)
+
+        # Find robot orientation in the model space (model space = virtual sphere world)
+        V,D = la.eig(diffeoPosD*(diffeoPosD.T))
+        dmax = max(D[0,0],D[1,1]) # Do we need these? They are apparently unused in getHAndles_unicycle_diffeo
+        dmin = min(D[0,0],D[1,1]) # '
+        e_vector = diffeoPosD * np.matrix([[np.cos(angle)],[np.sin(angle)]])
+        sphereHeading = (np.atan2(e_vector[1],e_vector[0])).item() # .item() to convert from 1x1 array like to float
+
+        # Find alpha1, alpha2, beta1, beta2
+        # Note: Do NOT use transformed heading
+        alpha1 = -(diffeoPosD[1,0]*np.cos(angle)+diffeoPosD[1,1]*np.sin(angle))
+        beta1 = diffeoPosDD[0]*np.cos(angle)**2+(diffeoPosDD[1]+diffeoPosDD[2])*np.sin(angle)*np.cos(angle)+diffeoPosDD[3]*np.sin(angle)**2
+        alpha2 = diffeoPosD[0,0]*np.cos(angle)+diffeoPosD[0,1]*np.sin(angle)
+        beta2 = diffeoPosDD[4]*np.cos(angle)**2+(diffeoPosDD[5]+diffeoPosDD[6])*np.sin(angle)*np.cos(angle)+diffeoPosDD[7]*np.sin(angle)**2
+
+        # Compute the basis for transforming to actual control inputs
+        e_norm = la.norm(diffeoPosD * np.matrix([[np.cos(sphereHeading)],[np.sin(sphereHeading)]]))
+        dksi_dpsi = la.det(diffeoPosD)/e_norm**2
+        DksiCosSin = (alpha1*beta1+alpha2*beta2)/e_norm**2
+
+        # Last step: Pack necessary info for reverse diffeomorphism into dictionary diffeoInfo
+        diffeoInfo={}
+        diffeoInfo['e_norm']=e_norm
+        diffeoInfo['DksiCosSin']=DksiCosSin
+        diffeoInfo['dksi_dpsi']=dksi_dpsi
+
+        return sphereGoal.T,spherePos.T,sphereHeading,diffeoInfo
+    
+    # def diffeoReverse(self,posTransformed,headingT,diffeoInfo,projInfo):
+    #     # Separation of the diffeomorphism and reverse, not including the sphereNav call. Intended for use with unicycle2022 agent.
+
+    #     # Consider packing all the info not done in agent.py navigation into a dictionary diffeoInfo
+        
+    #     #Inputs: 
+    #     #   headingTphereworld velocity and angular velocity vertically stacked in a numpy column matrix
+    #     #Outputs:
+    #     #   dV: Velocity transformed back to the polygon world
+    #     #   dW : Angular velocity transformed back to the polygon world
+
+    #     # Unpack diffeoInfo
+    #     DksiCosSin=diffeoInfo['DksiCosSin']
+    #     e_norm=diffeoInfo['e_norm']
+    #     dksi_dpsi=diffeoInfo['dksi_dpsi']
+
+    #     # Unpack projInfo
+    #     # Note: See semnav_matlab-master/sensor/projgoalLIDAR2Dunicycle for more info
+    #     # Note: Check these assignments. The matlab code notation on what LFA1 and LFA2 are is hard to read.
+    #     PGL=projInfo['Hpar']
+    #     PGA=projInfo['Hg']
+
+    #     # Compute the basis for the virtual control inputs
+    #     tV = (PGL - posTransformed).T * np.matrix([[np.cos(headingT)],[np.sin(headingT)]])
+    #     tW1 = (PGA - posTransformed).T * np.matrix([[np.cos(headingT)],[np.sin(headingT)]])
+    #     tW2 = (PGA - posTransformed).T * np.matrix([[-np.sin(headingT)],[np.cos(headingT)]])
+
+    #     # Compute commands by accounting for limits # uncomment them when ready
+    #     LinearCtrlGain = min([LinearCtrlGain,LinearCmdMax*e_norm/abs(tV),0.5*AngularCmdMax*dksi_dpsi*e_norm/(abs(tV*DksiCosSin))]);
+    #     AngularCtrlGain = min([AngularCtrlGain,0.5*(AngularCmdMax*dksi_dpsi)/(abs(np.atan2(tW2,tW1)))])
+    #     LinearCtrlGain=0.2 #DUMMY VALUE; temporary
+    #     AngularCtrlGain=0.2 #DUMMY VALUE; temporary
+
+    #     # Compute actual control inputs. Refer to Vasilopoulos 2022, defs. (52a) & (52b)
+    #     dV_virtual = LinearCtrlGain * tV
+    #     dV = dV_virtual/e_norm
+    #     dW_virtual = AngularCtrlGain * np.atan2(tW2,tW1)
+    #     dW = (dW_virtual-dV*DksiCosSin)/dksi_dpsi
+    #     if (type(dV)==None) or (type(dW)==None):
+    #         dV = 0.01
+    #         dW = 0.0
+    #     return dV,dW
+
+
     
     def obstacleBufferPlot(self): # used in main_single_sim to plot stuff
         bufferedPolygons=shapely.buffer(self.ObstacleList,self.DiffeoParams['epsilon'])
@@ -408,6 +523,16 @@ class polygonEnv(environment):
                 nearest_point=closest_points[0]
         
         return min_dist, nearest_point
+
+    def safetyMatrixExtended(self,pos):
+        return self.sphereWorld.safetyMatrixExtended(pos)
+
+    def safetyCoefficientsExtended(self,goal,pos):
+        return self.sphereWorld.safetyCoefficientsExtended(goal,pos)
+
+    def safetyCoefficientsNoGoal(self,pos):
+        return self.sphereWorld.safetyCoefficientsNoGoal(pos)
+
 
     def unicycleNavTestVis(self,goal,pos):
         return 1

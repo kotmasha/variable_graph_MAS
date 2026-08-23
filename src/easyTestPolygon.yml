@@ -51,6 +51,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: []
         Bravo:
           Type: "fullyActuatedAgent"
           State:
@@ -59,6 +60,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: []
         Charlie:
           Type: "fullyActuatedAgent"
           State:
@@ -67,6 +69,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: []
         Delta:
           Type: "fullyActuatedAgent"
           State:
@@ -75,6 +78,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: []
         Echo:
           Type: "fullyActuatedAgent"
           State:
@@ -83,6 +87,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: []
         Foxtrot:
           Type: "fullyActuatedAgent"
           State:
@@ -91,6 +96,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: []
         Golf:
           Type: "fullyActuatedAgent"
           State:
@@ -99,6 +105,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: []
         Hotel:
           Type: "fullyActuatedAgent"
           State:
@@ -107,6 +114,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: []
         India:
           Type: "fullyActuatedAgent"
           State:
@@ -115,6 +123,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: []
         Juliett:
           Type: "fullyActuatedAgent"
           State:
@@ -123,6 +132,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: []
         Kilo:
           Type: "fullyActuatedAgent"
           State:
@@ -131,6 +141,7 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
+          Plots: []
     Edges:
       - ["Zoe", "Bravo"]
       - ["Bravo", "Zoe"]

@@ -20,7 +20,7 @@ from myGeometryTools import skewJ
 # from geometry_msgs.msg import Twist, PoseStamped
 # from tf_transformations import quaternion_from_euler
 
-# Future goal: Design agent class as a "parent" with minimal functionality, and re-structure for a fully-actuated and a unicycle agent separately.
+# Goal: Design agent class as a "parent" with minimal functionality, and re-structure for a fully-actuated and a unicycle agent separately.
 
 
 
@@ -37,7 +37,6 @@ class Agent():
         self.plots=network.networkInfo['networkInfo']['Agents']['AgentInfo'][name]['Plots'] # List of strings, which are things to plot
 
         self.visualization={}
-        # UNCOMMENT THIS WHEN READY; IT IS INTENDED TO STAY HERE
         self.visualization['vertex']=patches.Circle(
             uv.col2tup(self.state.q),
             radius=0.15,
@@ -107,10 +106,10 @@ class Agent():
     def setState(self,vec): # update the agent's state using vec
         self.state.update(vec)
     
-    def dynamics(self,controlInput,inputState=None): # DWR 6/17/2026: I think this is supposed to give a route to the controller computing for each agent type
+    def dynamics(self,controlInput,inputState=None):
         if inputState is None:
             inputState=self.state # Workaround for default value
-        #some computation here using self.state and controlInput 
+        #some computation here using self.state and controlInput, depending on agent type
         return 0. # 0 is default dynamics value
 
     def computeController(self):
@@ -184,8 +183,6 @@ class fullyActuatedAgent(Agent):
             targNav=self.navf(targ,my_pos) 
             controlInput=controlInput+self.network.leaderGain*targNav
 
-            
-            
         # Combine the target component with the network interaction component        
         controlInput=controlInput+pnpSummand
         return controlInput
@@ -272,7 +269,7 @@ class unicycleAgent(Agent): #Will use 2nd order state from states.py
     # testing notes:
     #   Set dummy values for eta, alpha, and beta
 
-class unicycleAgent2022(Agent):
+class unicycleSphereAgent2022(Agent):
     def __init__(self,name,env,network,task,state):
         if not(np.size(state['p'])==1):
             raise Exception("Heading should be radian")
@@ -292,14 +289,9 @@ class unicycleAgent2022(Agent):
             animated=True, # ENABLE IF DOING VIDEO
         )
 
-        if 'safePolygon' in self.plots:
-            print("add HgProj and HparaProj code in agent.py")
-            # if 'HgProjection' in self.plots['safePolygon']:
-            # if 'HparaProjection' in self.plots['safePolygon']:
-
-
         # DWR self notes for writing Vasilos' unicycle code:
         #   refer to pg 101 in Vasilos 2022 paper.
+        #   refer to (56) thru (59) in Guralnik's Aug 8 2024 paper for reasoning w/ qpsolvers
         #   Mapped space is polygon world after object inflation, model space is sphere world
 
     def dynamics(self,controlInput,inputState=None):
@@ -308,16 +300,18 @@ class unicycleAgent2022(Agent):
         B=np.matrix([[np.cos(inputState.angle),0.],[np.sin(inputState.angle),0.],[0.,1]])
         return B*controlInput
 
-    def computeController(self,virtualState=None):  # See algorithm 4.2 in thesis for more info.
-        # So far, being programmed for sphereworld. Will be extended to allow polygon later
-        my_pos=self.own_state(virtualState).pos()
+    def computeController(self,virtualState=None,newGoal=None):  # See algorithm 4.2 in thesis for more info.
+        my_pos=np.array(self.own_state(virtualState).pos())
         my_heading=np.array(self.own_state(virtualState).myAngle()) # nparray for qpsolvers
         # Prepare "empty" control input vector
-        controlInput=np.zeros_like(np.vstack((my_pos,np.array(my_heading)))) # not sure if vstack or hstack
+        controlInput=np.zeros_like(np.vstack((my_pos,np.array(my_heading))))
         # Calculate the navigation-to-goal component
         if 'Target' in self.task:
+            if newGoal is None: goal=np.reshape(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']],shape=np.shape(my_pos))
+            else: goal=newGoal # for use by polygonal
+
             # set up a qp-solve problem for the projection of the goal to the safe polygon
-            goal=np.reshape(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']],shape=np.shape(my_pos))
+
             # Angular local goal setup
             M=np.matmul((goal-my_pos).transpose(),skewJ)
             HgProb=qpsolvers.problem.Problem(
@@ -327,8 +321,6 @@ class unicycleAgent2022(Agent):
                 b=np.matmul(M,my_pos-goal),  # equality constraint coefficient
                 G=self.env.safetyMatrixExtended(my_pos),   # DWR 7/30/2026: According to matlab code, a different safety matrix is used for unicycle
                 h=self.env.safetyCoefficientsExtended(goal,my_pos), # safety constraints coefficients
-                #lb=0.5*(self.env.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
-                #ub=0.5*(self.env.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
             )
             # Linear local goal setup
             M=np.array([-np.sin(my_heading),np.cos(my_heading)])
@@ -339,8 +331,6 @@ class unicycleAgent2022(Agent):
                 b=np.matmul(M,my_pos-goal),  # equality constraint coefficient
                 G=self.env.safetyMatrixExtended(my_pos),   # safety constraints matrix
                 h=self.env.safetyCoefficientsExtended(goal,my_pos), # safety constraints coefficients
-                #lb=0.5*(self.env.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
-                #ub=0.5*(self.env.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
             )
             # Standard projection to safe polygon
             safeProb=qpsolvers.problem.Problem(
@@ -348,8 +338,6 @@ class unicycleAgent2022(Agent):
                 np.zeros((np.size(goal),1)), # no linear component in this QP
                 G=self.env.safetyMatrixExtended(my_pos),   # safety constraints matrix
                 h=self.env.safetyCoefficientsExtended(goal,my_pos), # safety constraints coefficients
-                #lb=0.5*(self.env.wkspcLowerBds+pos)-goal, # workspace boundary-safety lower bounds
-                #ub=0.5*(self.env.wkspcUpperBds+pos)-goal, # workspace boundary-safety upper bounds
             )
             resultHg=qpsolvers.solve_qp(P=HgProb.P,q=HgProb.q,G=HgProb.G,h=HgProb.h,A=HgProb.A,b=HgProb.b,lb=HgProb.lb,ub=HgProb.ub,solver='piqp',initvals=(my_pos-goal))
             resultHpar=qpsolvers.solve_qp(P=HparProb.P,q=HparProb.q,G=HparProb.G,h=HparProb.h,A=HparProb.A,b=HparProb.b,lb=HparProb.lb,ub=HparProb.ub,solver='piqp',initvals=(my_pos-goal))
@@ -366,6 +354,75 @@ class unicycleAgent2022(Agent):
             velocity=-1*np.matrix([np.cos(my_heading),np.sin(my_heading)])*(my_pos-resultHpar)
             angularV=np.arctan( (np.matrix([-1*np.sin(my_heading),np.cos(my_heading)])*(my_pos-resultHg)) / (np.matrix([np.cos(my_heading),np.sin(my_heading)])*(my_pos-resultHg)) )
 
-        controlInput=np.vstack((velocity.transpose(),angularV),dtype=np.matrix)
+        return np.vstack((velocity,angularV))
+
+class unicyclePolyAgent2022(Agent):
+    def __init__(self,name,env,network,task,state):
+        self.virtualAgent=unicycleSphereAgent2022(name,env,network,task,state)
+        if not(np.size(state['p'])==1):
+            raise Exception("Heading should be radian")
+        state=State2ndOrdRadian(np.vstack(((np.matrix(state['q'])).T,(np.matrix(state['p'])).T))) #state=self.state is done in super()
+        super().__init__(name,env,network,task,state)
+        # Note: So long as the coeffs in self.hardware are >0, the agent should converge per def 5.4.2 in Vasilopoulos 2022
+        self.hardware=self.network.networkInfo['networkInfo']['Agents']['AgentInfo'][name]['Hardware']
+
+        rotator=np.matrix([[np.cos(state.angle),-np.sin(state.angle)],[np.sin(state.angle),np.cos(state.angle)]])
+        headingVector=rotator*np.matrix([[1.],[0.]])
+        self.visualization['heading']=patches.Arrow(
+            x=self.state.q[0,0],
+            y=self.state.q[1,0],
+            dx=headingVector[0,0],
+            dy=headingVector[1,0],
+            alpha=1,
+            color='purple',
+            width=0.35,
+            animated=True, # ENABLE IF DOING VIDEO
+        )
+    
+    def dynamics(self,controlInput,inputState=None):
+        if inputState is None:
+            inputState=self.state
+        B=np.matrix([[np.cos(inputState.angle),0.],[np.sin(inputState.angle),0.],[0.,1]])
+        return B*controlInput
+
+    def computeController(self,virtualState=None):
+        if virtualState is None:
+            virtualState=self.virtualAgent.state
+        my_pos=np.array(self.own_state(virtualState).pos())
+        heading=np.array(self.own_state(virtualState).myAngle())
+        goal=np.reshape(self.network.networkInfo['networkInfo']['networkTask']['Goals'][self.task['Target']],shape=np.shape(my_pos))
+        # print(la.norm(goal-my_pos))
         
+        # Compute diffeomorphism from polygon to virtual sphere world
+        sphereGoal,spherePos,sphereHeading,diffeoInfo=self.virtualAgent.env.diffeo(goal,my_pos,heading)
+
+        # Do navigation in virtual sphere world
+        sphereOutput=self.virtualAgent.computeController(np.vstack((spherePos,sphereHeading)),sphereGoal)
+        sphereV=sphereOutput[0]
+        sphereAngularV=sphereOutput[1]
+
+        # BELOW: computing reverse diffeomorphism on the virtual sphere navigation result
+        # Unpack diffeoInfo
+        DksiCosSin=diffeoInfo['DksiCosSin']
+        e_norm=diffeoInfo['e_norm']
+        dksi_dpsi=diffeoInfo['dksi_dpsi']
+
+        # Compute commands by accounting for limits, w/ added div by zero protection
+        if sphereV==0:
+            LinearCtrlGain = self.hardware['LinearCtrlGain']
+        else:
+            if DksiCosSin==0:
+                LinearCtrlGain = min([self.hardware['LinearCtrlGain'],self.hardware['LinearCmdMax']*e_norm/abs(sphereV)])
+            else:
+                LinearCtrlGain = min([self.hardware['LinearCtrlGain'],self.hardware['LinearCmdMax']*e_norm/abs(sphereV),0.5*self.hardware['AngularCmdMax']*dksi_dpsi*e_norm/(abs(sphereV*DksiCosSin))])
+        if sphereAngularV==0:
+            AngularCtrlGain = self.hardware['AngularCtrlGain']
+        else:
+            AngularCtrlGain = min([self.hardware['AngularCtrlGain'],0.5*(self.hardware['AngularCmdMax']*dksi_dpsi)/(abs(sphereAngularV))])
+        
+        # Compute actual control inputs. Refer to Vasilopoulos 2022, defs. (52a) & (52b)
+        V = (LinearCtrlGain * sphereV)/e_norm
+        W = ((AngularCtrlGain * sphereAngularV)-V*DksiCosSin)/dksi_dpsi
+
+        controlInput=np.vstack(( V,W ))
         return controlInput
