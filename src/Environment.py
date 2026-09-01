@@ -336,7 +336,7 @@ class polygonEnv(environment):
         sphereHeading = (np.atan2(e_vector[1],e_vector[0])).item() # .item() to convert from 1x1 array like to float
 
         # Find alpha1, alpha2, beta1, beta2
-        # Do NOT use transformed heading (sphereHeading) for this step
+        # Note: Do NOT use transformed heading
         alpha1 = -(diffeoPosD[1,0]*np.cos(angle)+diffeoPosD[1,1]*np.sin(angle))
         beta1 = diffeoPosDD[0]*np.cos(angle)**2+(diffeoPosDD[1]+diffeoPosDD[2])*np.sin(angle)*np.cos(angle)+diffeoPosDD[3]*np.sin(angle)**2
         alpha2 = diffeoPosD[0,0]*np.cos(angle)+diffeoPosD[0,1]*np.sin(angle)

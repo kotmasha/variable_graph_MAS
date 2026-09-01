@@ -33,7 +33,7 @@ EnvInfo:
 Network:
   netID: 'AutonomyPark'
   networkInfo:
-    Duration: 40
+    Duration: 300
     networkTask:
       Goals:
         Goal1: [9., 9.]
@@ -50,8 +50,8 @@ Network:
           Task:
             Target: 'Goal1'
             KeepUpQ: False
-          Plots:
-            safePolygon: ['goalProjection','HparaProjection','HgProjection']
+          Plots: []
+            #safePolygon: ['goalProjection','HparaProjection','HgProjection']
         Bravo:
           Type: "fullyActuatedAgent"
           State:

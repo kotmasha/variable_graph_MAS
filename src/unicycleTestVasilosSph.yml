@@ -58,7 +58,7 @@ Network:
         Zoe:
           Type: "unicycleSphereAgent2022" # Corresponding class in agent.py
           State:
-            q: [[3., 1.67]] # The double brackets makes numpy.shape(q) output (1, 2) instead of (2,)
+            q: [[2., 1.67]] # The double brackets makes numpy.shape(q) output (1, 2) instead of (2,)
             p: [[1.57]]
           Task:
             Target: 'Goal1'

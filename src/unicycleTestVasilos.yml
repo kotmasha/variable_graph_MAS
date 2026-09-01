@@ -65,7 +65,7 @@ Network:
             AngularCmdMax: 1
           State:
             q: [[2., 1.67]] # The double brackets makes numpy.shape(q) output (1, 2) instead of (2,)
-            p: [[0.]]
+            p: [[1.57]]
           Task:
             Target: 'Goal1'
             KeepUpQ: False
