@@ -45,17 +45,16 @@ Network:
         Zoe:
           Type: "fullyActuatedAgent" # Corresponding class in agent.py
           State:
-            q: [[2., 1.67]] # The double brackets makes numpy.shape(q) output (1, 2) instead of (2,)
+            q: [[4.,6.66]] # The double brackets makes numpy.shape(q) output (1, 2) instead of (2,)
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
             KeepUpQ: False
-          Plots:
-            safePolygon: ['goalProjection','HparaProjection','HgProjection']
+          Plots: []
         Bravo:
           Type: "fullyActuatedAgent"
           State:
-            q: [[1.33, 1.]]
+            q: [[3.5, 7.33]]
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
@@ -64,7 +63,7 @@ Network:
         Charlie:
           Type: "fullyActuatedAgent"
           State:
-            q: [[0.67, 0.67]]
+            q: [[2.33, 8.]]
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
@@ -73,7 +72,7 @@ Network:
         Delta:
           Type: "fullyActuatedAgent"
           State:
-            q: [[0.33, 0.33]]
+            q: [[1.66, 7.5]]
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
@@ -82,7 +81,7 @@ Network:
         Echo:
           Type: "fullyActuatedAgent"
           State:
-            q: [[1., 0.33]]
+            q: [[1.33, 6.66]]
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
@@ -91,7 +90,7 @@ Network:
         Foxtrot:
           Type: "fullyActuatedAgent"
           State:
-            q: [[1.67, 0.67]]
+            q: [[1.67, 5.5]]
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
@@ -100,7 +99,7 @@ Network:
         Golf:
           Type: "fullyActuatedAgent"
           State:
-            q: [[2.67, 1.]]
+            q: [[2.5, 5.33]]
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
@@ -109,60 +108,47 @@ Network:
         Hotel:
           Type: "fullyActuatedAgent"
           State:
-            q: [[3.33, 0.67]]
+            q: [[3.5, 5.5]]
             p: [[1., 0.]]
           Task:
             Target: 'Goal1'
             KeepUpQ: True
           Plots: []
-        India:
-          Type: "fullyActuatedAgent"
-          State:
-            q: [[3.67, 0.33]]
-            p: [[1., 0.]]
-          Task:
-            Target: 'Goal1'
-            KeepUpQ: True
-          Plots: []
-        Juliett:
-          Type: "fullyActuatedAgent"
-          State:
-            q: [[3., 0.33]]
-            p: [[1., 0.]]
-          Task:
-            Target: 'Goal1'
-            KeepUpQ: True
-          Plots: []
-        Kilo:
-          Type: "fullyActuatedAgent"
-          State:
-            q: [[2.33, 0.67]]
-            p: [[1., 0.]]
-          Task:
-            Target: 'Goal1'
-            KeepUpQ: True
-          Plots: []
+        # India:
+        #   Type: "fullyActuatedAgent"
+        #   State:
+        #     q: [[3.67, 0.33]]
+        #     p: [[1., 0.]]
+        #   Task:
+        #     Target: 'Goal1'
+        #     KeepUpQ: True
+        #   Plots: []
+        # Juliett:
+        #   Type: "fullyActuatedAgent"
+        #   State:
+        #     q: [[3., 0.33]]
+        #     p: [[1., 0.]]
+        #   Task:
+        #     Target: 'Goal1'
+        #     KeepUpQ: True
+        #   Plots: []
+        # Kilo:
+        #   Type: "fullyActuatedAgent"
+        #   State:
+        #     q: [[2.33, 0.67]]
+        #     p: [[1., 0.]]
+        #   Task:
+        #     Target: 'Goal1'
+        #     KeepUpQ: True
+        #   Plots: []
     Edges:
       - ["Zoe", "Bravo"]
-      - ["Bravo", "Zoe"]
       - ["Bravo", "Charlie"]
-      - ["Charlie", "Bravo"]
       - ["Charlie", "Delta"]
-      - ["Delta", "Charlie"]
-      - ["Charlie", "Echo"]
-      - ["Echo", "Charlie"]
-      - ["Bravo", "Foxtrot"]
-      - ["Foxtrot", "Bravo"]
-      - ["Zoe", "Golf"]
-      - ["Golf", "Zoe"]
-      - ["Golf", "Hotel"]
-      - ["Hotel", "Golf"]
-      - ["Hotel", "India"]
-      - ["India", "Hotel"]
-      - ["Hotel", "Juliett"]
-      - ["Juliett", "Hotel"]
-      - ["Golf", "Kilo"]
-      - ["Kilo", "Golf"]
+      - ["Delta", "Echo"]
+      - ["Echo","Foxtrot"]
+      - ["Foxtrot","Golf"]
+      - ["Golf","Hotel"]
     pnpParameters:
       Lazy: 0
       coopGain: 10  # mu///omega for lazy

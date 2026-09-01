@@ -1,6 +1,5 @@
 workPath: '~/sims/variable_graph_MAS/sims/easyTest/'
-# EnvType: 'sphereworldEnv'
-EnvType: 'polygonEnv'
+EnvType: 'sphereworldEnv'
 
 EnvInfo:
   Interface: 'odeInt'
@@ -15,34 +14,21 @@ EnvInfo:
   # Interface: which interface is being used for updating the state? (ODE solver---which one? Robot---which one? etc.)
   #            'nsfPlots' #nsfPlots for nsf plots, Euler for Euler integration, odeInt for ode integration using scipy, odeSolo for single-agent navigation by leader w/out changing other parameters
   Obstacles:
-    # One:
-    #   center: [2.5, 6.67]
-    #   radius: 1.
-    # Two: 
-    #   center: [6.67, 2.]
-    #   radius: 0.67
-    # Three: 
-    #   center: [7.33, 6.67]
-    #   radius: 0.67
-    # Four: 
-    #   center: [5., 9.]
-    #   radius: 0.58
-    # Five: 
-    #   center: [3.33, 2.33]
-    #   radius: 0.56
     One:
-      vertices: [[2.,6.17],[3.,6.17],[3.,7.17],[2.,7.17],[2.,6.17]]
+      center: [2.5, 6.67]
+      radius: 1.
     Two: 
-      vertices: [[6.,1.33],[7.33,1.33],[7.33,2.67],[6.,2.67],[6.,1.33]]
-    Three:
-      vertices: [[6.67,6.],[8.,6.],[8.,7.33],[6.67,7.33],[6.67,6.]]
-
-  DiffeoParams:
-    p: 20
-    epsilon: 0.25
-    varepsilon: 0.25 # tune to make sure the polygonal collars do not intersect
-    mu_1: 0.0625 # must be roughly equal to epsilon^2, so that the switch scales almost linearly with beta
-    mu_2: 0.01 # must be small so that sigma reaches the value of sigma_beta almost immediately
+      center: [6.67, 2.]
+      radius: 0.67
+    Three: 
+      center: [7.33, 6.67]
+      radius: 0.67
+    Four: 
+      center: [5., 9.]
+      radius: 0.58
+    Five: 
+      center: [3.33, 2.33]
+      radius: 0.56
 
 Network:
   netID: 'AutonomyPark'
@@ -57,100 +43,106 @@ Network:
       Initialization: "Provided" # the other option is "Random"
       AgentInfo:
         Zoe:
-          Type: "unicyclePolyAgent2022" # Corresponding class in agent.py
-          Hardware:
-            LinearCtrlGain: 1
-            LinearCmdMax: 1
-            AngularCtrlGain: 1
-            AngularCmdMax: 1
+          Type: "fullyActuatedAgent" # Corresponding class in agent.py
           State:
             q: [[2., 1.67]] # The double brackets makes numpy.shape(q) output (1, 2) instead of (2,)
-            p: [[0.]]
+            p: [[1., 0.]]
           Task:
             Target: 'Goal1'
             KeepUpQ: False
-          Plots: [] # Figure out the best way to handle "don't do any special plots". the List [] is a cheesy way to do it
-            # safePolygon: ['goalProjection','HparaProjection','HgProjection']
-        # Bravo:
-        #   Type: "unicycleAgent2022"
-        #   State:
-        #     q: [[1.33, 1.]]
-        #     p: [[1.57]]
-        #   Task:
-        #     Target: 'Goal1'
-        #     KeepUpQ: False
+          Plots:
+            safePolygon: ['goalProjection','HparaProjection','HgProjection']
+        Bravo:
+          Type: "fullyActuatedAgent"
+          State:
+            q: [[7., 1.]]
+            p: [[1., 0.]]
+          Task:
+            Target: 'Goal1'
+            KeepUpQ: False
+          Plots:
+            safePolygon: ['goalProjection','HparaProjection','HgProjection']
         # Charlie:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[0.67, 0.67]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
-        #     KeepUpQ: False
+        #     KeepUpQ: True
+        #   Plots: []
         # Delta:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[0.33, 0.33]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
-        #     KeepUpQ: False
+        #     KeepUpQ: True
+        #   Plots: []
         # Echo:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[1., 0.33]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
-        #     KeepUpQ: False
+        #     KeepUpQ: True
+        #   Plots: []
         # Foxtrot:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[1.67, 0.67]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
-        #     KeepUpQ: False
+        #     KeepUpQ: True
+        #   Plots: []
         # Golf:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[2.67, 1.]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
-        #     KeepUpQ: False
+        #     KeepUpQ: True
+        #   Plots: []
         # Hotel:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[3.33, 0.67]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
-        #     KeepUpQ: False
+        #     KeepUpQ: True
+        #   Plots: []
         # India:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[3.67, 0.33]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
-        #     KeepUpQ: False
+        #     KeepUpQ: True
+        #   Plots: []
         # Juliett:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[3., 0.33]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
-        #     KeepUpQ: False
+        #     KeepUpQ: True
+        #   Plots: []
         # Kilo:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[2.33, 0.67]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
-        #     KeepUpQ: False
+        #     KeepUpQ: True
+        #   Plots: []
     Edges:
       # - ["Zoe", "Bravo"]
       # - ["Bravo", "Zoe"]

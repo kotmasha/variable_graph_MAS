@@ -114,7 +114,7 @@ stateVector=net.formNetworkStateVector() # for later use in solving ODEs
 # This section needs to be edited to reflect new yml structure
 pnpParameters=data['Network']['networkInfo']['pnpParameters']
 # each edge is represented as a tuple of names
-if len(names) > 1:
+if not(data['Network']['networkInfo']['Edges'] is None) and (len(names) > 1):
     edges=[tuple(item) for item in data['Network']['networkInfo']['Edges']]
 else:
     edges=None
@@ -150,18 +150,19 @@ def plot_multi_agent_trajectories(net, odeSol, flowTime):
     goal_x, goal_y = 9,9
     ax.plot(goal_x, goal_y, 'X', color='red', markersize=15, markeredgewidth=2, label='Goal')
     # Plot communication graph edges
-    for name in net.graph.names:
-        agent_index = net.graph.vertexIndices[name]
-        a,b=net.stateVectorInfo[name]
-        agentPos=odeSol[0,a:a+2]
-        neighbors = net.neighbors(name)
-        for neighbor in neighbors:
-            a,b=net.stateVectorInfo[neighbor]
-            neighborPos=odeSol[0,a:a+2] # DWR 7/2/2026: Can't remember if we have a pre-existing system for telling which part of odeSol is the position rather than heading
-            ax.plot([agentPos[0], neighborPos[0]], [agentPos[1], neighborPos[1]], 'k-', linewidth=1.5)  # Black lines for initial configuration
+    if not(edges is None):
+        for name in net.graph.names:
+            agent_index = net.graph.vertexIndices[name]
+            a,b=net.stateVectorInfo[name]
+            agentPos=odeSol[0,a:a+2]
+            neighbors = net.neighbors(name)
+            for neighbor in neighbors:
+                a,b=net.stateVectorInfo[neighbor]
+                neighborPos=odeSol[0,a:a+2] # DWR 7/2/2026: Can't remember if we have a pre-existing system for telling which part of odeSol is the position rather than heading
+                ax.plot([agentPos[0], neighborPos[0]], [agentPos[1], neighborPos[1]], 'k-', linewidth=1.5)  # Black lines for initial configuration
     # Plot trajectories
     for i, name in enumerate(net.graph.names):
-        agent_index = net.graph.vertexIndices[name]
+        # agent_index = net.graph.vertexIndices[name]
         a,b=net.stateVectorInfo[name]
         agentPos=odeSol[:,a:a+2] # DWR 7/2/2026: Can't remember if we have a pre-existing system for telling which part of odeSol is the position rather than heading
         ax.plot(agentPos[:,0], agentPos[:,1], '--', color=colors[i], label=f'Agent {name}', linewidth=0.95)  # Reduced line thickness
@@ -169,32 +170,35 @@ def plot_multi_agent_trajectories(net, odeSol, flowTime):
         ax.plot(agentPos[-1,0], agentPos[-1,1], 'o', color=colors[i], markersize=8)  # End point
 
     # Plot initial configuration with black edges between neighbors
-    for name in net.graph.names:
-        agent_index = net.graph.vertexIndices[name]
-        x = odeSol[-1, 2*agent_index]
-        y = odeSol[-1, 2*agent_index + 1]
-        neighbors = net.neighbors(name)
-        for neighbor in neighbors:
-            neighbor_index = net.graph.vertexIndices[neighbor]
-            nx = odeSol[-1, 2*neighbor_index]
-            ny = odeSol[-1, 2*neighbor_index + 1]
-            ax.plot([x, nx], [y, ny], 'k-', linewidth=1.5)
+    if not(edges is None):
+        for name in net.graph.names:
+            agent_index = net.graph.vertexIndices[name]
+            x = odeSol[-1, 2*agent_index]
+            y = odeSol[-1, 2*agent_index + 1]
+            neighbors = net.neighbors(name)
+            for neighbor in neighbors:
+                neighbor_index = net.graph.vertexIndices[neighbor]
+                nx = odeSol[-1, 2*neighbor_index]
+                ny = odeSol[-1, 2*neighbor_index + 1]
+                ax.plot([x, nx], [y, ny], 'k-', linewidth=1.5)
 
     # Ensure aspect ratio is equal
     ax.set_aspect('equal', adjustable='box')
 
     # Create custom legend
-    legend_elements = [
-        Line2D([0], [0], marker='o', color='w', label='Agents', markerfacecolor='gray', markersize=8),
-        Line2D([0], [0], color='k', label='Communication Graph'),
-        # Line2D([0], [0], marker='o', color='w', label='Obstacles', markerfacecolor='red', markersize=8),
-        Line2D([0], [0], marker='>', color='gray', label='Navigation Field'),
-        Line2D([0], [0], marker='X', color='red', markersize=8, markeredgewidth=1, label='Goal'),
-        Line2D([0], [0], linestyle='--', color='gray', label='Agent Trajectory')  
-    ]
-    figure.text(0.5,0.01,'MAS Simulation with Graph Maintainance',ha='center',fontsize=11)
-    # Add legend to lower right corner
-    ax.legend(handles=legend_elements, loc='lower right',  ncol=1,fontsize=18)
+    createLegend=False
+    if createLegend:
+        legend_elements = [
+            Line2D([0], [0], marker='o', color='w', label='Agents', markerfacecolor='gray', markersize=8),
+            Line2D([0], [0], color='k', label='Communication Graph'),
+            # Line2D([0], [0], marker='o', color='w', label='Obstacles', markerfacecolor='red', markersize=8),
+            Line2D([0], [0], marker='>', color='gray', label='Navigation Field'),
+            Line2D([0], [0], marker='X', color='red', markersize=8, markeredgewidth=1, label='Goal'),
+            Line2D([0], [0], linestyle='--', color='gray', label='Agent Trajectory')  
+        ]
+        figure.text(0.5,0.01,'MAS Simulation with Graph Maintainance',ha='center',fontsize=11)
+        # Add legend to lower right corner
+        ax.legend(handles=legend_elements, loc='lower right',  ncol=1,fontsize=18)
 
 def frameCull(timeData,stateData,maxTime,desiredNframes):
     mask=np.zeros(len(timeData),dtype=bool)
@@ -258,7 +262,7 @@ elif solverType=="odeInt": #For OdeInt
     plot_multi_agent_trajectories(net, odeSol, flowTime)
     plt.title('ODE Solution for Multiple Agents')
     plt.show()
-    #raise Exception("Comment this line out to turn on the video")
+    raise Exception("Comment this line out to turn on the video")
     odeTimeStamps=np.insert(output_dict['tcur'],0,0) # odeSol includes the starting t=0 frame, but t=0 is not included in tcur
     odeTimeStamps,odeSol=frameCull(odeTimeStamps,odeSol,maxTime=simTime,desiredNframes=Nframes)
     ani=animation.FuncAnimation(
@@ -272,5 +276,5 @@ elif solverType=="odeInt": #For OdeInt
     )
     myPath=os.path.abspath(__file__)
     net.plotEdgeLenghts()
-    writerVideo = animation.FFMpegWriter(fps=framesPerSec) 
+    writerVideo = animation.FFMpegWriter(fps=framesPerSec)
     ani.save('pnpMovie.mp4', writer=writerVideo)

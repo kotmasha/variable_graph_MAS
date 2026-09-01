@@ -1,7 +1,8 @@
 workPath: '~/sims/variable_graph_MAS/sims/easyTest/'
-# EnvType: 'sphereworldEnv'
 EnvType: 'polygonEnv'
 
+# Interface: which interface is being used for updating the state? (ODE solver---which one? Robot---which one? etc.)
+# nsfPlots for nsf plots, Euler for Euler integration, odeInt for ode integration using scipy, odeSolo for single-agent navigation by leader w/out changing other parameters
 EnvInfo:
   Interface: 'odeInt'
   WorkspaceBdry: # defines a rectangular domain with boundary parallel to the axes
@@ -11,32 +12,18 @@ EnvInfo:
     Ymin: 0
   Dim: 2 # Number of dimensions. Only 2-dimensional is implemented
 
-
-  # Interface: which interface is being used for updating the state? (ODE solver---which one? Robot---which one? etc.)
-  #            'nsfPlots' #nsfPlots for nsf plots, Euler for Euler integration, odeInt for ode integration using scipy, odeSolo for single-agent navigation by leader w/out changing other parameters
   Obstacles:
-    # One:
-    #   center: [2.5, 6.67]
-    #   radius: 1.
-    # Two: 
-    #   center: [6.67, 2.]
-    #   radius: 0.67
-    # Three: 
-    #   center: [7.33, 6.67]
-    #   radius: 0.67
-    # Four: 
-    #   center: [5., 9.]
-    #   radius: 0.58
-    # Five: 
-    #   center: [3.33, 2.33]
-    #   radius: 0.56
     One:
       vertices: [[2.,6.17],[3.,6.17],[3.,7.17],[2.,7.17],[2.,6.17]]
     Two: 
       vertices: [[6.,1.33],[7.33,1.33],[7.33,2.67],[6.,2.67],[6.,1.33]]
     Three:
       vertices: [[6.67,6.],[8.,6.],[8.,7.33],[6.67,7.33],[6.67,6.]]
-
+    # Four:
+    #   vertices: [[4.5,8.5],[4.5,9.5],[5.5,8.5],[5.5,9.5]]
+    # Five:
+    #   vertices: [[2.83,1.83],[2.83,2.83],[3.83,1.83],[3.83,2.83]]
+  
   DiffeoParams:
     p: 20
     epsilon: 0.25
@@ -47,7 +34,7 @@ EnvInfo:
 Network:
   netID: 'AutonomyPark'
   networkInfo:
-    Duration: 40
+    Duration: 50
     networkTask:
       Goals:
         Goal1: [9., 9.]
@@ -57,100 +44,104 @@ Network:
       Initialization: "Provided" # the other option is "Random"
       AgentInfo:
         Zoe:
-          Type: "unicyclePolyAgent2022" # Corresponding class in agent.py
-          Hardware:
-            LinearCtrlGain: 1
-            LinearCmdMax: 1
-            AngularCtrlGain: 1
-            AngularCmdMax: 1
+          Type: "fullyActuatedAgent" # Corresponding class in agent.py
           State:
             q: [[2., 1.67]] # The double brackets makes numpy.shape(q) output (1, 2) instead of (2,)
-            p: [[0.]]
+            p: [[1., 0.]]
           Task:
             Target: 'Goal1'
             KeepUpQ: False
-          Plots: [] # Figure out the best way to handle "don't do any special plots". the List [] is a cheesy way to do it
-            # safePolygon: ['goalProjection','HparaProjection','HgProjection']
+          Plots: []
         # Bravo:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[1.33, 1.]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
         #     KeepUpQ: False
+        #   Plots: []
         # Charlie:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[0.67, 0.67]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
         #     KeepUpQ: False
+        #   Plots: []
         # Delta:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[0.33, 0.33]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
         #     KeepUpQ: False
+        #   Plots: []
         # Echo:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[1., 0.33]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
         #     KeepUpQ: False
+        #   Plots: []
         # Foxtrot:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[1.67, 0.67]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
         #     KeepUpQ: False
+        #   Plots: []
         # Golf:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[2.67, 1.]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
         #     KeepUpQ: False
+        #   Plots: []
         # Hotel:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[3.33, 0.67]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
         #     KeepUpQ: False
+        #   Plots: []
         # India:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[3.67, 0.33]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
         #     KeepUpQ: False
+        #   Plots: []
         # Juliett:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[3., 0.33]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
         #     KeepUpQ: False
+        #   Plots: []
         # Kilo:
-        #   Type: "unicycleAgent2022"
+        #   Type: "fullyActuatedAgent"
         #   State:
         #     q: [[2.33, 0.67]]
-        #     p: [[1.57]]
+        #     p: [[1., 0.]]
         #   Task:
         #     Target: 'Goal1'
         #     KeepUpQ: False
+        #   Plots: []
     Edges:
       # - ["Zoe", "Bravo"]
       # - ["Bravo", "Zoe"]
