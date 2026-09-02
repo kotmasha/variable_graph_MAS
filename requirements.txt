@@ -1,4 +1,18 @@
-qpsolvers[open_source_solvers]
-quadprog
-ffmpeg
+numpy
+matplotlib
+scipy
+shapely
+qpsolvers
+descartes
+pyyaml
 tripy
+qpsolvers[piqp]
+quadprog
+tripy
+
+Original code uses qpsolvers[open_source_solvers], but it appears to have problems.
+
+conda install doesn't detect some of these, use pip install in those cases
+
+If you want to use ffmpeg, you'll have to add it to your PATH and uncomment related lines
+in main_single_sim.py. "pip install ffmpeg" will not work with MatPlotLib.

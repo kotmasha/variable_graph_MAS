@@ -16,7 +16,10 @@ from scipy.integrate import odeint, solve_ivp
 from matplotlib.animation import FuncAnimation, PillowWriter
 from datetime import datetime
 from matplotlib.lines import Line2D
-plt.rcParams['animation.ffmpeg_path'] = 'C:\\0_Work_files\\bin\\ffmpeg\\bin\\ffmpeg.exe'
+
+# Uncomment the other lines involving ffmpeg if you want to use ffmpeg, then comment the html lines
+# Only use this line if you want to use FFmpeg but can't get PATH to work.
+# plt.rcParams['animation.ffmpeg_path'] = 'C:\\0_Work_files\\bin\\ffmpeg\\bin\\ffmpeg.exe'
 
 # from manim import *
 current_time = datetime.now()
@@ -233,7 +236,9 @@ if solverType=='Euler':
     )
     myPath=os.path.abspath(__file__)
     # animationFile = r"/home/ishan/sims/variable_graph_MAS/sims/" 
-    writerVideo = animation.FFMpegWriter(fps=framesPerSec) 
+    # writerVideo = animation.FFmpegWriter(fps=framesPerSec)
+    # ani.save('pnpMovieContractive.mp4', writer=writerVideo)
+    writerVideo = animation.HTMLWriter(fps=framesPerSec)
     ani.save('pnpMovieContractive.mp4', writer=writerVideo)
 
 elif solverType == 'nsfPlots':
@@ -262,7 +267,7 @@ elif solverType=="odeInt": #For OdeInt
     plot_multi_agent_trajectories(net, odeSol, flowTime)
     plt.title('ODE Solution for Multiple Agents')
     plt.show()
-    raise Exception("Comment this line out to turn on the video")
+    # raise Exception("Comment this line out to turn on the video")
     odeTimeStamps=np.insert(output_dict['tcur'],0,0) # odeSol includes the starting t=0 frame, but t=0 is not included in tcur
     odeTimeStamps,odeSol=frameCull(odeTimeStamps,odeSol,maxTime=simTime,desiredNframes=Nframes)
     ani=animation.FuncAnimation(
@@ -276,5 +281,7 @@ elif solverType=="odeInt": #For OdeInt
     )
     myPath=os.path.abspath(__file__)
     net.plotEdgeLenghts()
-    writerVideo = animation.FFMpegWriter(fps=framesPerSec)
-    ani.save('pnpMovie.mp4', writer=writerVideo)
+    # writerVideo = animation.FFMpegWriter(fps=framesPerSec)
+    # ani.save('pnpMovie.mp4', writer=writerVideo)
+    writerVideo = animation.HTMLWriter(fps=framesPerSec)
+    ani.save('pnpMovie.html', writer=writerVideo)
