@@ -86,7 +86,7 @@ class sphereworldEnv(environment):
         self.obstacleCenters=np.matrix(self.obstacleCenters)
         self.obstacleRadii=np.matrix(self.obstacleRadii).T
 
-    def nav(self,goal,pos): # both goal and state are assumed to be numpy column vector matrices
+    def nav(self,goal,pos) -> np.matrix: # both goal and state are assumed to be numpy column vector matrices
         # set up a qp-solve problem for the projection of the goal to the safe polygon
         goal=np.array(goal) # DWR 6/23/2026 followup: Unfortunately, qpsolvers does not like matrices.
         pos=np.array(pos)

@@ -321,6 +321,8 @@ class netwk():
     
     # def updateVisualization(self,timeStamp): # DWR 7/2/2026: Do we need timeStamp?
     def updateVisualization(self):   
+        # print(self.verticesVisual)
+        # raise Exception("testing")
         for name in self.verticesVisual:
             for item in self.verticesVisual[name]:
                 # Safe polygon

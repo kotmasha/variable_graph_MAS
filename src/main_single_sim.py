@@ -17,6 +17,10 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from datetime import datetime
 from matplotlib.lines import Line2D
 
+import matplotlib.patches as patches
+
+from parallelized_animation_master import simVideo
+
 # Uncomment the other lines involving ffmpeg if you want to use ffmpeg, then comment the html lines
 # Only use this line if you want to use FFmpeg but can't get PATH to work.
 # plt.rcParams['animation.ffmpeg_path'] = 'C:\\0_Work_files\\bin\\ffmpeg\\bin\\ffmpeg.exe'
@@ -52,7 +56,7 @@ names=[]
 for agentName in data['Network']['networkInfo']['Agents']['AgentInfo']:
     names.append(agentName)
 
-def plotQuiver(target,arrowSpacing=0.7): # modify to change the fact that it was in network.py
+def plotQuiver(target,arrowSpacing=0.7) -> tuple:
     [xmin, ymin, xmax, ymax] = shapely.bounds(env.workspace)
     
     xArray=np.arange(xmin,xmax,arrowSpacing) # third parameter is arrow spacing. Smaller=more dense
@@ -79,8 +83,8 @@ env=getattr(Environment,data['EnvType'])(data['EnvInfo'])
 
 # Initialize the visualization
 figure,visualization=plt.subplots()
-visualization.set_xlim(0,10) # find a better way to do this based on the workspace info in the yml
-visualization.set_ylim(0,10)
+visualization.set_xlim(data['EnvInfo']['WorkspaceBdry']['Xmin'],data['EnvInfo']['WorkspaceBdry']['Xmax'])
+visualization.set_ylim(data['EnvInfo']['WorkspaceBdry']['Ymin'],data['EnvInfo']['WorkspaceBdry']['Ymax'])
 visualDict={}
 visualDict['environmentPlot']=visualization
 # network visualization must happen after environment is visualized
@@ -95,8 +99,8 @@ def projSafePolygon(pos,goal):
 
 # Environment.py plotting. obsBuffer and collarPolygon are mainly for testing
 visualization.add_patch(env.workspacePatch())
-#visualization.add_patch(env.obstacleBufferPlot())
-#visualization.add_patch(env.collarPolygonPlot())
+# visualization.add_patch(env.obstacleBufferPlot())
+# visualization.add_patch(env.collarPolygonPlot())
 
 # Quiver plotting
 target=np.array((data['Network']['networkInfo']['networkTask']['Goals']['Goal1'])).reshape((2,1))
@@ -263,25 +267,39 @@ elif solverType=="odeInt": #For OdeInt
     # odeSol=odeObj['y'].transpose() # solve_ivp has y as columns left to right, whereas our code wants y as rows up to down
     print(f"odeSol: {odeSol}")
     print(f"odeSol shape: {np.shape(odeSol)}")
-    plt.plot(odeSol[:,0],odeSol[:,1],'b--')
-    plot_multi_agent_trajectories(net, odeSol, flowTime)
-    plt.title('ODE Solution for Multiple Agents')
-    plt.show()
+    # plt.plot(odeSol[:,0],odeSol[:,1],'b--')
+    # plot_multi_agent_trajectories(net, odeSol, flowTime)
+    # plt.title('ODE Solution for Multiple Agents')
+    # plt.show()
     # raise Exception("Comment this line out to turn on the video")
     odeTimeStamps=np.insert(output_dict['tcur'],0,0) # odeSol includes the starting t=0 frame, but t=0 is not included in tcur
     odeTimeStamps,odeSol=frameCull(odeTimeStamps,odeSol,maxTime=simTime,desiredNframes=Nframes)
-    ani=animation.FuncAnimation(
-        fig=figure,
-        func=updateAni,
-        frames=frameCounter(odeTimeStamps,odeSol,net),
-        # frames=[net for item in range(Nframes)], 
-        interval=1,
-        # cache_frame_data=False,
-        save_count=Nframes,
-    )
-    myPath=os.path.abspath(__file__)
-    net.plotEdgeLenghts()
-    # writerVideo = animation.FFMpegWriter(fps=framesPerSec)
-    # ani.save('pnpMovie.mp4', writer=writerVideo)
-    writerVideo = animation.HTMLWriter(fps=framesPerSec)
-    ani.save('pnpMovie.html', writer=writerVideo)
+
+    # new animation code
+    def parallelUpdate(stateVector,AnimScene):
+        # timeStamp,networkState,net=content
+        net.pnpUpdate(stateVector)     # update agent state
+        net.tick(1/framesPerSec)       # one tick of the network clock
+        net.updateVisualization()      # update the visualization data
+        # needs to be updated in network.py to reflect changes to how visualization works
+
+    agentViz=patches.Circle((5,5),radius=1) # temporary
+    mainVideoObj=simVideo.parallelVideo(odeSol)
+    mainVideoObj.makeVideo(visualization,agentViz,parallelUpdate)
+
+    # Old animation code
+    # ani=animation.FuncAnimation(
+    #     fig=figure,
+    #     func=updateAni,
+    #     frames=frameCounter(odeTimeStamps,odeSol,net),
+    #     # frames=[net for item in range(Nframes)], 
+    #     interval=1,
+    #     # cache_frame_data=False,
+    #     save_count=Nframes,
+    # )
+    # myPath=os.path.abspath(__file__)
+    # net.plotEdgeLenghts()
+    # # writerVideo = animation.FFMpegWriter(fps=framesPerSec)
+    # # ani.save('pnpMovie.mp4', writer=writerVideo)
+    # writerVideo = animation.HTMLWriter(fps=framesPerSec)
+    # ani.save('pnpMovie.html', writer=writerVideo)
