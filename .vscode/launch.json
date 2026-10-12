@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Program",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main_single_sim.py",
+            "console": "integratedTerminal",
+            "args": ["src/dem1easyTest.yml"]
+        }
+    ]
+}

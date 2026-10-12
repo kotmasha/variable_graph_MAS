@@ -36,7 +36,7 @@ class environment():
         self.obstacleData=envInfo['Obstacles']
         self.stateDim=envInfo['Dim']
         
-    def nav(self,goal,state): #  6/8/2026
+    def nav(self,goal,state):
         return goal-state # default stand-in for a navigation field, to be re-defined in each subclass, like for sphere or polygon case
     
     def generateRndPoint(self, radius=None, refPt=None):  
@@ -100,6 +100,7 @@ class sphereworldEnv(environment):
             #initvals=(pos-goal) # interior point of the polygon for the convenience of the qp solver
         )
         #Note: cannot create initvals in the Problem former itself
+
         #solve the QP problem
         #solver list: https://pypi.org/project/qpsolvers/
         result=qpsolvers.solve_qp(P=prob.P,q=prob.q,G=prob.G,h=prob.h,solver='piqp',initvals=(pos-goal))
@@ -122,7 +123,7 @@ class sphereworldEnv(environment):
         return la.norm(np.subtract(self.obstacleCenters,pos.T),axis=1,keepdims=True)
     
     def obstacleDistExtended(self,pos):
-        # Computes the column vector of distances of z to the obstacle centers
+        # Computes the column vector of distances of z to the obstacle centers and workspace boundary
         ballDists=la.norm(np.subtract(self.obstacleCenters,pos.T),axis=1,keepdims=True)
         wkspcDists=np.abs(np.array([
             [pos[0][0]-self.wkspcLowerBds[0][0]],
@@ -176,16 +177,6 @@ class sphereworldEnv(environment):
             return True
 
 
-    # def plotObstacles(self,viz): # DWR 7/13/2026: Code currently uses workspace-obstacles directly for plotting
-    #     for i in range(self.obstacleNum):
-    #         oc=shapely.geometry.Point(self.obstacleCenters[i])
-    #         oR=(self.obstacleRadii[i]).item()
-    #         circ=oc.buffer(oR)
-    #         x,y=circ.exterior.xy
-    #         viz.plot(x, y, color='black')
-    #         viz.fill(x, y, color='gray',alpha=1)
-
-
 
 class polygonEnv(environment):    
     def __init__(self,envInfo):
@@ -199,6 +190,7 @@ class polygonEnv(environment):
         Ymin=envInfo['WorkspaceBdry']['Ymin']
         Ymax=envInfo['WorkspaceBdry']['Ymax']
         self.workspaceVertices=[[Xmin,Ymin],[Xmax,Ymin],[Xmax,Ymax],[Xmin,Ymax],[Xmin,Ymin]]
+
         #For use in visualisation:
         self.workspace=shapely.geometry.Polygon(self.workspaceVertices)
         for obs in self.obstacleData:
@@ -207,21 +199,9 @@ class polygonEnv(environment):
         self.ObstacleList=shapely.geometry.MultiPolygon([shapely.geometry.Polygon(self.obstacleData[obs]['vertices']) for obs in self.obstacleData])
         shapely.prepare(self.ObstacleList)
 
-        # k=0
-        # self.obstacle_polygons=[]  # Store obstacle polygons for distance calculations
-        # for ii in range(obsNum):
-        #     faa=obs[k:k+4]
-        #     obstacle_poly=shapelyObstacle.spawnPoly(faa)
-        #     self.obstacle_polygons.append(np.array(obstacle_poly.exterior.coords))
-        #     self.workspace=shapely.difference(self.workspace, shapely.geometry.polygon.orient(obstacle_poly, 1.0))
-        #     k += 4
-
-        # DWR 7/8/2026: Plan: 
-        #   1: Maybe rewrite/replace above code
-        #   2: Create the polygon triangulations/trees IN INIT. We don't need to recalculate the trees every time we do the diffeomorphism
-        #   3: The obstacles in the yml should be arrays of points made by the users.
-        
-        # DWR 7/13/2026: create the visualization here instead of network.py
+        # DWR 7/8/2026 Plan: 
+        #   1: Create the polygon triangulations/trees IN INIT. We don't need to recalculate the trees every time we do the diffeomorphism
+        #   2: The obstacles in the yml should be arrays of points made by the users.
 
         self.sphereWorldParams=envInfo
         self.obstacleTrees={}
@@ -290,7 +270,7 @@ class polygonEnv(environment):
 
         # compute and return the pull-back of sphereNavField to the real world:
         #   DWR 7/13/2026: we replaced np.matmul with lu_solve for better numerical stability
-        #return np.matmul(np.linalg.inv(diffeoPosD),sphereNavField)
+        # return np.matmul(np.linalg.inv(diffeoPosD),sphereNavField)
         return lu_solve(lu_factor(diffeoPosD),sphereNavField,overwrite_b=True) # Performance looks slightly better, but haven't tested it much
 
     def diffeo(self,goal,pos,angle):
@@ -355,51 +335,6 @@ class polygonEnv(environment):
 
         return sphereGoal.T,spherePos.T,sphereHeading,diffeoInfo
     
-    # def diffeoReverse(self,posTransformed,headingT,diffeoInfo,projInfo):
-    #     # Separation of the diffeomorphism and reverse, not including the sphereNav call. Intended for use with unicycle2022 agent.
-
-    #     # Consider packing all the info not done in agent.py navigation into a dictionary diffeoInfo
-        
-    #     #Inputs: 
-    #     #   headingTphereworld velocity and angular velocity vertically stacked in a numpy column matrix
-    #     #Outputs:
-    #     #   dV: Velocity transformed back to the polygon world
-    #     #   dW : Angular velocity transformed back to the polygon world
-
-    #     # Unpack diffeoInfo
-    #     DksiCosSin=diffeoInfo['DksiCosSin']
-    #     e_norm=diffeoInfo['e_norm']
-    #     dksi_dpsi=diffeoInfo['dksi_dpsi']
-
-    #     # Unpack projInfo
-    #     # Note: See semnav_matlab-master/sensor/projgoalLIDAR2Dunicycle for more info
-    #     # Note: Check these assignments. The matlab code notation on what LFA1 and LFA2 are is hard to read.
-    #     PGL=projInfo['Hpar']
-    #     PGA=projInfo['Hg']
-
-    #     # Compute the basis for the virtual control inputs
-    #     tV = (PGL - posTransformed).T * np.matrix([[np.cos(headingT)],[np.sin(headingT)]])
-    #     tW1 = (PGA - posTransformed).T * np.matrix([[np.cos(headingT)],[np.sin(headingT)]])
-    #     tW2 = (PGA - posTransformed).T * np.matrix([[-np.sin(headingT)],[np.cos(headingT)]])
-
-    #     # Compute commands by accounting for limits # uncomment them when ready
-    #     LinearCtrlGain = min([LinearCtrlGain,LinearCmdMax*e_norm/abs(tV),0.5*AngularCmdMax*dksi_dpsi*e_norm/(abs(tV*DksiCosSin))]);
-    #     AngularCtrlGain = min([AngularCtrlGain,0.5*(AngularCmdMax*dksi_dpsi)/(abs(np.atan2(tW2,tW1)))])
-    #     LinearCtrlGain=0.2 #DUMMY VALUE; temporary
-    #     AngularCtrlGain=0.2 #DUMMY VALUE; temporary
-
-    #     # Compute actual control inputs. Refer to Vasilopoulos 2022, defs. (52a) & (52b)
-    #     dV_virtual = LinearCtrlGain * tV
-    #     dV = dV_virtual/e_norm
-    #     dW_virtual = AngularCtrlGain * np.atan2(tW2,tW1)
-    #     dW = (dW_virtual-dV*DksiCosSin)/dksi_dpsi
-    #     if (type(dV)==None) or (type(dW)==None):
-    #         dV = 0.01
-    #         dW = 0.0
-    #     return dV,dW
-
-
-    
     def obstacleBufferPlot(self): # used in main_single_sim to plot stuff
         bufferedPolygons=shapely.buffer(self.ObstacleList,self.DiffeoParams['epsilon'])
         bufferedPolygons=shapely.difference(bufferedPolygons,self.ObstacleList) # Removes obstacle from buffer for visual clarity
@@ -421,6 +356,7 @@ class polygonEnv(environment):
     #         viz.plot(x, y, color='black')
     #         viz.fill(x, y, color='gray',alpha=0.3)
     
+    # Check to see if they are identical to polygeom_lib functions. If they are identical, remove them.
     def polydist(self, xy, p): # DWR 7/8/2026: Is there a reason we can't replace this with polydist from polygeom_lib?
         """
         Computes the distance between a set of points, p, and 
@@ -523,7 +459,8 @@ class polygonEnv(environment):
                 nearest_point=closest_points[0]
         
         return min_dist, nearest_point
-
+    
+    # Wrappers for sphere nav utilities
     def safetyMatrixExtended(self,pos):
         return self.sphereWorld.safetyMatrixExtended(pos)
 
@@ -533,14 +470,15 @@ class polygonEnv(environment):
     def safetyCoefficientsNoGoal(self,pos):
         return self.sphereWorld.safetyCoefficientsNoGoal(pos)
 
-
+    # Cleanup Candidate
     def unicycleNavTestVis(self,goal,pos):
         return 1
         
     # \nRadius of\ncommunication=3m
 
 
-
+# Cleanup Candidate
+# Meeting 10/5/2026: mostly good as an extra check. Don't delete but not high priority.
 # class starworldEnv(environment):
 #     def __init__(self,outerbounds,obstacleData):
 #         super().__init__(outerbounds,obstacleData)

@@ -45,24 +45,12 @@ class netwk():
                 self.agents[name]=getattr(agent,networkInfo['Agents']['AgentInfo'][name]['Type'])(**networkInfo['Agents']['AgentInfo'][name]['State'])
         
         #form a dictionary with additional data on the organization of the state vector
-        # DWR: Will the state vector always contain the p vector, or only when the p vector is being used?
         self.stateVectorInfo={} # set up empty dictionary
         dictLoop=0 # loop counter setup
         for name in networkInfo['networkInfo']['Agents']['AgentInfo']:
             self.stateVectorInfo[name]=[dictLoop,dictLoop+self.agents[name].state.size()] # Assigns name key a list containing the first and last entry of that agent in the big state vector
             dictLoop=dictLoop+self.agents[name].state.size()
         self.networkStateSize=dictLoop
-
-        #form the list of leaders # DWR 6/16/26: Could remove it
-        #self.leaders = networkInfo['networkInfo']['Agents']['Leaders']
-
-        #construct the network-level update
-
-        #form the stateWname dict
-        # self.stateWname = {} # empty dictionary setup
-        # for name,stateVect in networkInfo['Agents']['AgentInfo']:
-        #     self.stateWname[name] = networkInfo['Agents']['AgentInfo']
-
 
         #compute cooperation parameters, if relevant (?)
         self.pnpParameters=networkInfo['networkInfo']['pnpParameters']
@@ -79,7 +67,7 @@ class netwk():
         self.m=1/self.pnpParameters['rsafe']
         #self.leaders=self.leaderList # may want to just use the initial self.leaderList for less confusion
         self.time=0.0
-        self.worldType = 0 # dummy value to get running; Any code corresponding to this should be moved to Environment.py
+        # self.worldType = 0 # dummy value to get running; Any code corresponding to this should be moved to Environment.py
         self.updatedEdges = self.cleanEdge(self.graph.edges)
         self.edgeData = {
             'edge': [],

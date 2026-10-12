@@ -33,7 +33,7 @@ EnvInfo:
 Network:
   netID: 'AutonomyPark'
   networkInfo:
-    Duration: 40
+    Duration: 5
     networkTask:
       Goals:
         Goal1: [9., 9.]
