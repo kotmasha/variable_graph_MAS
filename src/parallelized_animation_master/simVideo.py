@@ -20,7 +20,7 @@ from .animate import AnimationScene, ParallelAnimation
 class parallelVideo:
     def __init__(self,odeSol,figureInfo,artistDictionary,stateVecInfo,agentNames):
         @dataclass(frozen=True)
-        class WaveData: # Probably remove this class
+        class WaveData: # Probably remove this class    
             x: np.ndarray
             y: np.ndarray
 
@@ -49,13 +49,15 @@ class parallelVideo:
 
         inputArtists={}
         for title in self.artistBook:
-            inputArtists[title]=patches.Circle(
-            tuple(self.artistBook[title]),
-            radius=0.15,
-            label=title,
-            color='orange',
-            animated=True,
+            circle = patches.Circle(
+                tuple(self.artistBook[title]),
+                radius=0.15,
+                label=title,
+                color='orange',
+                animated=True,
             )
+            axes.add_patch(circle)
+            inputArtists[title]=circle
 
         return AnimationScene(
             figure=inputFigure,
